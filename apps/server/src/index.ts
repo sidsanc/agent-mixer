@@ -97,7 +97,10 @@ store.onChange((push) => {
   for (const s of subs) {
     if (push.type === "event") s.send(push)
     else if (push.type === "attendee" && push.id === s.attendee) s.send(push)
-    else if (push.type === "intro" && s.attendee && (push.state.a === s.attendee || push.state.b === s.attendee)) s.send(push)
+    // Intro changes (decide, chat, meet now) go to every stream of BOTH parties, redacted for that viewer.
+    else if (push.type === "intro" && s.attendee && (push.state.a === s.attendee || push.state.b === s.attendee)) {
+      s.send({ type: "intro", state: redactIntro(push.state, s.attendee) })
+    }
   }
 })
 
@@ -120,7 +123,7 @@ function sse(attendee: string | null, req: Request) {
         sub.send({ type: "attendee", id: attendee, view })
         for (const m of view.matches) {
           const s = await store.intro(m.introId)
-          if (s) sub.send({ type: "intro", state: s })
+          if (s) sub.send({ type: "intro", state: redactIntro(s, attendee) })
         }
       }
     },
@@ -199,7 +202,10 @@ Bun.serve({
       }
       if (req.method === "GET" && path === "/api/observer") return json({ url: relayRef?.observerUrl ?? null })
       if (req.method === "POST" && path === "/api/signup") return await signup(req)
-      if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) return json(await store.attendeeView(r[1]))
+      if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) {
+        const view = await store.attendeeView(r[1])
+        return view.profile ? json(view) : json({ error: "attendee not found" }, 404)
+      }
       if (req.method === "GET" && path === "/api/event") return json(await store.eventView())
       if (req.method === "GET" && path === "/api/stream") return sse(url.searchParams.get("attendee"), req)
       if (req.method === "GET" && (r = m(/^\/api\/intro\/([^/]+)$/))) {
