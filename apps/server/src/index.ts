@@ -26,19 +26,27 @@ loadEnv()
 process.env.DEMO_MODE ??= "1"
 
 // ---------- store ----------
+// STORE=terse is the default; STORE=memory forces the in-process store. If the Terse actors are not
+// reachable at startup we fall back to memory, loudly, so the demo still runs.
+const TERSE_PROBE_MS = Number(process.env.TERSE_PROBE_MS ?? 4000)
+
+function loud(msg: string, e?: unknown) {
+  const bar = "!".repeat(78)
+  console.error(`\n${bar}\n!!! ${msg}\n!!! ${e instanceof Error ? e.message : e ?? ""}\n${bar}\n`)
+}
+
 async function makeStore(): Promise<{ store: Store; kind: string }> {
-  if ((process.env.STORE ?? "memory") === "terse") {
+  if ((process.env.STORE || "terse") !== "memory") {
     try {
-      const mod: any = await import("./store/terse")
-      const store: Store =
-        typeof mod.createTerseStore === "function" ? await mod.createTerseStore()
-        : typeof mod.TerseStore === "function" ? new mod.TerseStore()
-        : typeof mod.default === "function" ? await mod.default()
-        : mod.default ?? mod.store
-      if (!store) throw new Error("store/terse.ts exports no store")
-      return { store, kind: "terse" }
+      const mod = await import("./store/terse")
+      // Probe with a real read so a dead :7100 (or bad hosted URL/key) is caught before we commit to it.
+      await Promise.race([
+        mod.probeTerse(),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`no answer from Terse in ${TERSE_PROBE_MS}ms`)), TERSE_PROBE_MS)),
+      ])
+      return { store: new mod.TerseStore(), kind: "terse" }
     } catch (e) {
-      console.error("\n!!! [store] STORE=terse failed, FALLING BACK TO MEMORY STORE:", e, "\n")
+      loud(`[store] Terse actors unreachable (${process.env.TERSE_ACTOR_URL || "http://127.0.0.1:7100"}): FALLING BACK TO MEMORY STORE`, e)
     }
   }
   return { store: new MemoryStore(), kind: "memory" }
@@ -63,9 +71,18 @@ function loadSeed(): Profile[] {
   return []
 }
 const seed = loadSeed()
+// Idempotent on restart: Attendee.create overwrites the profile and Event.join upserts by id,
+// so re-seeding never duplicates roster entries.
 for (const p of seed) {
-  await store.createAttendee(p)
-  await store.joinEvent(p)
+  try {
+    await store.createAttendee(p)
+    await store.joinEvent(p)
+  } catch (e) { console.error(`[seed] ${p.id} failed`, e) }
+}
+{
+  const roster = (await store.eventView()).roster
+  const dupes = roster.length - new Set(roster.map((r) => r.id)).size
+  console.log(`[seed] roster ${roster.length} (${dupes ? `${dupes} DUPLICATES` : "no duplicates"})`)
 }
 
 // ---------- relay ----------

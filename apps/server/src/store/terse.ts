@@ -20,6 +20,11 @@ const att = (id: string) => actors.Attendee.get(id)
 const ev = () => actors.Event.get(EVENT_ID)
 const intro = (id: string) => actors.Intro.get(id)
 
+/** Cheap real read used at startup to decide between Terse and the memory fallback. */
+export async function probeTerse(): Promise<void> {
+  await ev().view()
+}
+
 /** Map actor errors (thrown as ActorInvocationError with our message) to HTTP errors the server understands. */
 function mapError(e: unknown): never {
   const msg = e instanceof Error ? e.message : String(e)
