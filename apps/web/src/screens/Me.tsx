@@ -6,7 +6,7 @@ import { useMixer } from "../useMixer"
 import { Avatar } from "../components/Avatar"
 import { Confetti } from "../components/Confetti"
 import { AgentTab } from "./AgentTab"
-import { MatchesTab, bothOnsite, effective } from "./MatchesTab"
+import { MatchesTab, bothOnsite, effective, type Phase } from "./MatchesTab"
 import { ChatsTab } from "./ChatsTab"
 import { EventsTab } from "./EventsTab"
 
@@ -20,7 +20,7 @@ export function Me() {
   const [tab, setTab] = useState<Tab>("agents")
   const [matchOpen, setMatchOpen] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState<string | null>(null)
-  const [toast, setToast] = useState<MatchSummary | null>(null)
+  const [toast, setToast] = useState<{ kind: "match" | "request" | "connected"; m: MatchSummary } | null>(null)
   const [celebrate, setCelebrate] = useState<MatchSummary | null>(null)
   const [meetPing, setMeetPing] = useState<string | null>(null)
   // Only call it "reconnecting" after the stream has been down for a moment.
@@ -44,22 +44,60 @@ export function Me() {
     }
   }, [me, mx.backend, mx.notFound, nav])
 
-  // New matches, fresh mutual connects, meet-now requests.
-  const seen = useRef<Map<string, string> | null>(null)
+  // Chats stay badged until opened: introId -> chat length last seen (per attendee, survives reload).
+  const seenKey = `am.chatSeen.${me}`
+  const [chatSeen, setChatSeen] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(seenKey) ?? "{}")
+    } catch {
+      return {}
+    }
+  })
+  const markSeen = (id: string, n: number) =>
+    setChatSeen((cur) => {
+      if (cur[id] === n) return cur
+      const next = { ...cur, [id]: n }
+      try {
+        localStorage.setItem(seenKey, JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  const openThreadLen = chatOpen ? mx.intros[chatOpen]?.chat.length ?? 0 : 0
+  useEffect(() => {
+    if (tab === "chats" && chatOpen && mx.intros[chatOpen]) markSeen(chatOpen, openThreadLen)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, chatOpen, openThreadLen])
+
+  // New matches, incoming connect requests, fresh mutual connects, meet-now requests.
+  const seen = useRef<Map<string, Phase> | null>(null)
   const seenMeet = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (!mx.attendee || !me) return
     const prev = seen.current
-    const next = new Map<string, string>()
+    const next = new Map<string, Phase>()
     for (const m of mx.attendee.matches) {
-      const st = effective(m, mx.intros[m.introId], me).status
-      next.set(m.introId, st)
+      const ph = effective(m, mx.intros[m.introId], me).phase
+      next.set(m.introId, ph)
       if (prev) {
-        if (!prev.has(m.introId) && st === "pending") setToast(m)
-        else if (prev.has(m.introId) && prev.get(m.introId) !== "connected" && st === "connected") {
-          setToast(null)
+        const was = prev.get(m.introId)
+        if (ph === "connected" && was !== "connected") {
           setCelebrate(m)
-        }
+          setToast({ kind: "connected", m })
+          try {
+            navigator.vibrate?.(200)
+          } catch {
+            /* unsupported */
+          }
+        } else if (ph === "incoming" && was !== "incoming") {
+          setToast({ kind: "request", m })
+          try {
+            navigator.vibrate?.([80, 60, 80])
+          } catch {
+            /* unsupported */
+          }
+        } else if (!was && ph === "new") setToast({ kind: "match", m })
       }
       const mn = mx.intros[m.introId]?.meetNow
       if (mn && (mn.status ?? (mn.accepted ? "accepted" : "requested")) === "requested" && mn.requestedBy !== me && !seenMeet.current.has(`${m.introId}:${mn.at}`)) {
@@ -78,11 +116,17 @@ export function Me() {
 
   if (!me) return null
   const matches = mx.attendee?.matches ?? []
-  const newCount = matches.filter((m) => {
-    const e = effective(m, mx.intros[m.introId], me)
-    return e.status === "pending" && !e.myChoice
+  const phases = matches.map((m) => ({ m, ph: effective(m, mx.intros[m.introId], me).phase }))
+  const newCount = phases.filter((x) => x.ph === "new" || x.ph === "incoming").length
+  const chatCount = phases.filter(({ m, ph }) => {
+    if (ph !== "connected") return false
+    const it = mx.intros[m.introId]
+    const n = it?.chat.length ?? 0
+    const seenN = chatSeen[m.introId]
+    if (seenN === undefined) return true // never opened
+    const last = it?.chat[n - 1]
+    return n > seenN && !!last && last.from !== me
   }).length
-  const chatCount = matches.filter((m) => effective(m, mx.intros[m.introId], me).status === "connected").length
   const pingMatch = meetPing ? matches.find((m) => m.introId === meetPing && mx.intros[m.introId]?.meetNow?.status === "requested") : null
   const celebrateCanMeet = celebrate ? bothOnsite(celebrate, mx.intros[celebrate.introId], me, mx) : false
 
@@ -135,18 +179,28 @@ export function Me() {
 
       {toast && (
         <button
-          className="toast"
+          className={`toast ${toast.kind === "match" ? "" : `t-${toast.kind}`}`}
           onClick={() => {
+            const id = toast.m.introId
             setToast(null)
-            openMatch(toast.introId)
+            if (toast.kind === "connected") {
+              setCelebrate(null)
+              openChat(id)
+            } else openMatch(id)
           }}
         >
-          <Avatar id={toast.other.id} role={toast.other.role} size={38} />
+          <Avatar id={toast.m.other.id} role={toast.m.other.role} size={38} />
           <span>
-            <strong>New match · {toast.other.name}</strong>
-            <small>{toast.why}</small>
+            <strong>
+              {toast.kind === "connected"
+                ? `You and ${first(toast.m.other.name)} are connected — say hi`
+                : toast.kind === "request"
+                  ? `${first(toast.m.other.name)} wants to connect`
+                  : `New match · ${toast.m.other.name}`}
+            </strong>
+            <small>{toast.kind === "connected" ? "Your private chat is open." : toast.m.why}</small>
           </span>
-          <b>Review ›</b>
+          <b>{toast.kind === "connected" ? "Chat ›" : toast.kind === "request" ? "Accept ›" : "Review ›"}</b>
         </button>
       )}
 

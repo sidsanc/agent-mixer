@@ -2058,3 +2058,55 @@ textarea:focus-visible {
 .chat-msg.failed .send-state {
   color: var(--danger);
 }
+
+/* ---------- Connect requests ---------- */
+.status-pill.s-incoming {
+  color: #fff;
+  background: var(--pink);
+}
+.row-wrap.incoming .row-card {
+  box-shadow: 0 0 0 3px var(--pink);
+  animation: rise 0.35s var(--ease);
+}
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pill-btn.ghost {
+  color: var(--ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--line);
+}
+.connect-ask {
+  animation: rise 0.35s var(--ease), askPulse 2.4s ease-in-out 0.4s infinite;
+}
+@keyframes askPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--pink);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 61, 158, 0.45);
+  }
+}
+.toast.t-request {
+  background: var(--cream);
+  box-shadow:
+    0 0 0 3px var(--pink),
+    0 10px 24px rgba(22, 6, 28, 0.35);
+}
+.toast.t-connected {
+  z-index: 60;
+  background: var(--cyan);
+  color: var(--deep);
+}
+.toast.t-connected small {
+  color: #1f5a60;
+}
+@media (prefers-reduced-motion: reduce) {
+  .connect-ask,
+  .row-wrap.incoming .row-card {
+    animation: none;
+  }
+}
