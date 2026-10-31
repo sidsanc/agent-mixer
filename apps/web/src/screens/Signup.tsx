@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { EVENT_NAME, ROLES, type Attendance, type AvatarId, type Role } from "@agent-mixer/shared"
+import { ROLES, type AvatarId, type Role } from "@agent-mixer/shared"
 import { myId } from "../backend"
 import { useBackend } from "../useMixer"
 import { faceClass } from "../components/Avatar"
@@ -14,35 +14,30 @@ const CAST: { id: AvatarId; label: string; dot: string }[] = [
   { id: "robot", label: "Robot", dot: "#72eee9" },
 ]
 
-/** Event welcome + per-event setup in one screen. Under 30 seconds, no password. */
+/** Sign up once (no event wording here). Under 30 seconds, no password. Then: Events today. */
 export function Signup() {
   const nav = useNavigate()
   const backend = useBackend()
   const [params] = useSearchParams()
   const expired = params.get("expired") === "1"
-  const [eventName, setEventName] = useState(EVENT_NAME)
   const [name, setName] = useState("")
+  const [agentName, setAgentName] = useState("")
   const [role, setRole] = useState<Role | null>(null)
   const [avatar, setAvatar] = useState<AvatarId | null>(null)
   const [goal, setGoal] = useState("")
   const [bio, setBio] = useState("")
   const [privateIntent, setPrivateIntent] = useState("")
-  const [attendance, setAttendance] = useState<Attendance>("onsite")
   const [contact, setContact] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  // Already joined on this phone: go straight to the agent.
+  // Already signed up on this phone: go to Events today.
   useEffect(() => {
     const id = myId.get()
     if (!id || !backend) return
     if (backend.mode === "live" && id.startsWith("mock-")) return myId.clear()
-    nav("/me", { replace: true })
+    nav("/events", { replace: true })
   }, [backend, nav])
-
-  useEffect(() => {
-    backend?.event().then((v) => v.name && setEventName(v.name)).catch(() => {})
-  }, [backend])
 
   const ready = name.trim().length > 0 && !!role && goal.trim().length > 3 && !!backend && !busy
 
@@ -54,20 +49,20 @@ export function Signup() {
     try {
       const { attendeeId } = await backend.signup({
         name: name.trim(),
+        agentName: agentName.trim() || `${name.trim().split(" ")[0]}'s agent`,
         role,
         goal: goal.trim(),
         bio: bio.trim() || undefined,
         privateIntent: privateIntent.trim() || undefined,
-        attendance,
         contact: contact.trim() || undefined,
         // Skipped = a random character.
         avatar: avatar ?? CAST[Math.floor(Math.random() * CAST.length)].id,
       })
       myId.set(attendeeId)
-      nav("/me", { replace: true })
+      nav("/events", { replace: true })
     } catch (e) {
       console.error(e)
-      setErr("Could not join. Try again in a second.")
+      setErr("Could not sign up. Try again in a second.")
       setBusy(false)
     }
   }
@@ -79,7 +74,7 @@ export function Signup() {
           <span className="brand-mark">AM</span>
           <span>
             <strong>Agent Mixer</strong>
-            <small>{eventName} · Today</small>
+            <small>Your agent, at every event</small>
           </span>
         </div>
         <h1 className="welcome-title">
@@ -94,13 +89,23 @@ export function Signup() {
       </section>
 
       <form onSubmit={submit} className="setup">
-        {expired && <p className="banner warn">Your earlier session ended. Join again to send your agent back in.</p>}
-        <h2>Set up this event</h2>
-        <p className="hint">Tell your agent what matters today. It starts talking right away.</p>
+        {expired && <p className="banner warn">Your earlier session ended. Sign up again to send your agent back in.</p>}
+        <h2>Create your agent</h2>
+        <p className="hint">Sign up once. Your agent carries this into every event you join.</p>
 
         <label className="field">
           <span>Your name</span>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada Lovelace" autoComplete="name" maxLength={40} />
+        </label>
+
+        <label className="field">
+          <span>Your agent's name</span>
+          <input
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            placeholder={name.trim() ? `${name.trim().split(" ")[0]}'s agent` : "Ada's agent"}
+            maxLength={40}
+          />
         </label>
 
         <fieldset className="field">
@@ -130,7 +135,7 @@ export function Signup() {
         </fieldset>
 
         <label className="field">
-          <span>What do you want from this event?</span>
+          <span>Your goal, in one line</span>
           <textarea value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="I'm an investor looking for AI infra founders." rows={2} maxLength={160} />
           <small className="field-note">Other agents may hear this exact sentence.</small>
         </label>
@@ -149,20 +154,6 @@ export function Signup() {
           <small className="field-note lock">Private — your agent uses it to decide, never shares it.</small>
         </label>
 
-        <fieldset className="field">
-          <legend>Will you be at the venue?</legend>
-          <div className="attend">
-            <button type="button" className={attendance === "onsite" ? "on" : ""} aria-pressed={attendance === "onsite"} onClick={() => setAttendance("onsite")}>
-              <strong>I'll be there</strong>
-              <small>Unlock Meet now after a mutual connection</small>
-            </button>
-            <button type="button" className={attendance === "agent-only" ? "on" : ""} aria-pressed={attendance === "agent-only"} onClick={() => setAttendance("agent-only")}>
-              <strong>Agent only</strong>
-              <small>Your agent attends; you keep matches and chat</small>
-            </button>
-          </div>
-        </fieldset>
-
         <label className="field">
           <span>
             Short bio <em>· optional</em>
@@ -170,20 +161,18 @@ export function Signup() {
           <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Ex-Stripe, now building voice agents" maxLength={100} />
         </label>
 
-        {attendance === "onsite" && (
-          <label className="field">
-            <span>
-              How to spot you <em>· optional</em>
-            </span>
-            <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Green jacket, engineer badge" maxLength={120} />
-            <small className="field-note">Shared only with people you both Connect with.</small>
-          </label>
-        )}
+        <label className="field">
+          <span>
+            Contact or how to spot you <em>· optional</em>
+          </span>
+          <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="@ada on X · green jacket" maxLength={120} />
+          <small className="field-note">Shared only with people you both Connect with.</small>
+        </label>
 
         {err && <p className="err">{err}</p>}
 
         <button className="cta cyan big" disabled={!ready}>
-          {busy ? "Sending your agent in…" : "Start networking"}
+          {busy ? "Creating your agent…" : "Create my agent"}
         </button>
         <p className="fine">No password. Only your goal is shared.</p>
         <p className="fine">Agent import and Schedule later are coming next.</p>

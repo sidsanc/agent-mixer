@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { MatchSummary } from "@agent-mixer/shared"
-import { myId } from "../backend"
+import { joined, myId } from "../backend"
 import { useMixer } from "../useMixer"
 import { Avatar } from "../components/Avatar"
 import { Confetti } from "../components/Confetti"
@@ -13,11 +13,11 @@ import { EventsTab } from "./EventsTab"
 type Tab = "events" | "agents" | "matches" | "chats"
 const first = (n: string) => n.split(" ")[0]
 
-export function Me() {
+export function Me({ initialTab }: { initialTab?: "events" } = {}) {
   const nav = useNavigate()
   const me = myId.get()
   const mx = useMixer(me)
-  const [tab, setTab] = useState<Tab>("agents")
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? (Object.keys(joined.all()).length ? "agents" : "events"))
   const [matchOpen, setMatchOpen] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState<string | null>(null)
   const [toast, setToast] = useState<{ kind: "match" | "request" | "connected"; m: MatchSummary } | null>(null)
@@ -40,6 +40,7 @@ export function Me() {
     if (!me || !mx.backend) return
     if ((mx.backend.mode === "live" && me.startsWith("mock-")) || mx.notFound) {
       myId.clear()
+      joined.clear()
       nav(mx.notFound ? "/?expired=1" : "/", { replace: true })
     }
   }, [me, mx.backend, mx.notFound, nav])
@@ -165,9 +166,9 @@ export function Me() {
 
       <nav className="bottom-nav">
         <NavBtn on={tab === "events"} onClick={() => go("events")} label="Events" glyph="◎" />
-        <NavBtn on={tab === "agents"} onClick={() => go("agents")} label="Agents" glyph="◉" />
+        <NavBtn on={tab === "agents"} onClick={() => go("agents")} label="Agent" glyph="◉" />
         <NavBtn on={tab === "matches"} onClick={() => go("matches")} label="Matches" glyph="◆" count={newCount} />
-        <NavBtn on={tab === "chats"} onClick={() => go("chats")} label="Chats" glyph="●" count={chatCount} />
+        <NavBtn on={tab === "chats"} onClick={() => go("chats")} label="Connections" glyph="●" count={chatCount} />
       </nav>
 
       {mx.backend?.mode === "mock" && <div className="demo-tag">demo data</div>}
@@ -228,7 +229,7 @@ export function Me() {
           <Confetti />
           <div className="celebrate-inner">
             <div className="pair-faces big">
-              <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} size={88} agent />
+              <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} avatar={mx.attendee?.profile?.avatar} size={88} />
               <span className="spark">✦</span>
               <Avatar id={celebrate.other.id} role={celebrate.other.role} avatar={celebrate.other.avatar} size={88} />
             </div>
