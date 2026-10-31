@@ -15,7 +15,7 @@ export function BigScreen() {
   const world = useMemo(() => {
     const roster = ev?.roster ?? []
     const byId = new Map(roster.map((r) => [r.id, r]))
-    const agents: WorldAgent[] = roster.slice(0, 30).map((r) => ({ id: r.id, name: firstName(r), color: ROLE_COLOR[r.role] }))
+    const agents: WorldAgent[] = roster.slice(0, 30).map((r) => ({ id: r.id, name: firstName(r), color: ROLE_COLOR[r.role], avatar: r.avatar }))
     const shown = new Set(agents.map((a) => a.id))
     const pairs: [string, string][] = (ev?.active ?? []).filter((a) => shown.has(a.a) && shown.has(a.b)).map((a) => [a.a, a.b])
     const lastBy = new Map<string, EventView["feed"][number]>()

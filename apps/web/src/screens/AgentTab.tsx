@@ -28,22 +28,29 @@ export function AgentTab({ mx, me, onOpenMatches }: { mx: MixerState; me: string
   const [logTab, setLogTab] = useState<string | null>(null)
   const other = (c: Conversation) => mx.profileOf(c.a === me ? c.b : c.a) ?? fallbackProfile(c.a === me ? c.b : c.a)
 
-  // Newest active conversation is the one my avatar walks to.
-  const focusConv = useMemo(() => [...active].sort((x, y) => y.startedAt - x.startedAt)[0] ?? null, [active])
+  // My agent visits its live partners in turn, a few seconds at each (oldest first, stable order).
+  const ordered = useMemo(() => [...active].sort((x, y) => x.startedAt - y.startedAt), [active])
+  const [visit, setVisit] = useState(0)
+  useEffect(() => {
+    if (ordered.length < 2) return
+    const t = setInterval(() => setVisit((v) => v + 1), 7000)
+    return () => clearInterval(t)
+  }, [ordered.length])
+  const focusConv = ordered.length ? ordered[visit % ordered.length] : null
   const focusId = focusConv ? (focusConv.a === me ? focusConv.b : focusConv.a) : null
 
   const world = useMemo(() => {
-    const agents: WorldAgent[] = [{ id: me, name: first(agentName.replace(/'s agent$/, "")), color: "#72eee9", isMe: true }]
+    const agents: WorldAgent[] = [{ id: me, name: first(agentName.replace(/'s agent$/, "")), color: "#72eee9", isMe: true, avatar: profile?.avatar }]
     const partners = new Set(active.map((c) => (c.a === me ? c.b : c.a)))
     for (const id of partners) {
       const p = mx.profileOf(id)
-      agents.push({ id, name: p ? first(p.name) : "Guest", color: p ? ROLE_COLOR[p.role] : "#fff" })
+      agents.push({ id, name: p ? first(p.name) : "Guest", color: p ? ROLE_COLOR[p.role] : "#fff", avatar: p?.avatar })
     }
     // A few other guests roaming, so the venue feels full.
     for (const r of mx.event?.roster ?? []) {
       if (agents.length >= 7) break
       if (r.id === me || partners.has(r.id)) continue
-      agents.push({ id: r.id, name: first(r.name), color: ROLE_COLOR[r.role] })
+      agents.push({ id: r.id, name: first(r.name), color: ROLE_COLOR[r.role], avatar: r.avatar })
     }
     const bubbles: WorldBubble[] = []
     for (const c of active) {
@@ -55,8 +62,8 @@ export function AgentTab({ mx, me, onOpenMatches }: { mx: MixerState; me: string
       const p = mx.profileOf(o)
       bubbles.push({ key: l.id, speaker: l.from, label: l.from === me ? agentName : `${p ? first(p.name) : "Their"}'s agent`, text: l.text })
     }
-    return { agents, bubbles }
-  }, [me, agentName, active, mx, focusConv])
+    return { agents, bubbles, partners: [...partners] }
+  }, [me, agentName, active, mx, focusConv, profile?.avatar])
 
   const matchesCount = mx.attendee?.matches.length ?? 0
   const focusP = focusConv ? other(focusConv) : null
@@ -76,7 +83,7 @@ export function AgentTab({ mx, me, onOpenMatches }: { mx: MixerState; me: string
 
   return (
     <div className="world">
-      <VenueWorld variant="phone" agents={world.agents} pairs={[]} focus={focusId} bubbles={world.bubbles} />
+      <VenueWorld variant="phone" agents={world.agents} pairs={[]} focus={focusId} partners={world.partners} bubbles={world.bubbles} />
       <div className="world-hud">
         <div className="world-top">
           <div className="brand-block">
