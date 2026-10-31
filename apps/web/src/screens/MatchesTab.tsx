@@ -391,7 +391,7 @@ export function MeetPanel({ m, it, me, mx }: { m: MatchSummary; it?: IntroState;
         <div className="detail-row">
           <span className="detail-icon">L</span>
           <div>
-            <small>Look for</small>
+            <small>{contact && /@|\d{3}/.test(contact) ? "Contact" : "Look for"}</small>
             <strong>{contact ?? `${o.name} · ${o.role === "other" ? "attendee" : o.role}`}</strong>
           </div>
         </div>
