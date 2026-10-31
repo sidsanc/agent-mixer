@@ -7,7 +7,7 @@ import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
 import { llmProvider, llmStats } from "./agents/llm"
-import { maskIntro, meetNowTtl } from "./store/types"
+import { maskIntro, meetNowTtl, toPublic } from "./store/types"
 import { speed } from "./agents/engine"
 import { SeedHumans } from "./agents/seedHuman"
 
@@ -111,16 +111,44 @@ if (process.env.RELAY !== "0") {
 }
 engine.start()
 
+// ---------- fresh faces ----------
+// Intros and match summaries keep a copy of each public profile from when they were made (old ones have no
+// avatar). Before serving, swap in the current public profile so avatar and bio changes show everywhere.
+const pubCache = new Map<string, { at: number; p: ReturnType<typeof toPublic> | null }>()
+async function currentPublic(id: string) {
+  const hit = pubCache.get(id)
+  if (hit && Date.now() - hit.at < 3000) return hit.p
+  const full = await store.getProfile(id).catch(() => null)
+  const p = full ? toPublic(full) : null
+  pubCache.set(id, { at: Date.now(), p })
+  return p
+}
+async function freshIntro<T extends { a: string; b: string; profiles: Record<string, any> } | null>(s: T): Promise<T> {
+  if (!s) return s
+  const [pa, pb] = await Promise.all([currentPublic(s.a), currentPublic(s.b)])
+  return { ...s, profiles: { ...s.profiles, ...(pa ? { [s.a]: pa } : {}), ...(pb ? { [s.b]: pb } : {}) } }
+}
+async function freshView<T extends { matches: { other: { id: string } }[] }>(v: T): Promise<T> {
+  const matches = await Promise.all(v.matches.map(async (m) => {
+    const p = await currentPublic(m.other.id)
+    return p ? { ...m, other: p } : m
+  }))
+  return { ...v, matches } as T
+}
+
 // ---------- SSE ----------
 interface Sub { attendee: string | null; send: (p: ServerPush) => void }
 const subs = new Set<Sub>()
 store.onChange((push) => {
   for (const s of subs) {
     if (push.type === "event") s.send(push)
-    else if (push.type === "attendee" && push.id === s.attendee) s.send(push)
+    else if (push.type === "attendee" && push.id === s.attendee) {
+      freshView(push.view).then((view) => s.send({ ...push, view })).catch(() => s.send(push))
+    }
     // Intro changes (decide, chat, meet now) go to every stream of BOTH parties, redacted for that viewer.
     else if (push.type === "intro" && s.attendee && (push.state.a === s.attendee || push.state.b === s.attendee)) {
-      s.send({ type: "intro", state: redactIntro(push.state, s.attendee) })
+      const viewer = s.attendee
+      freshIntro(push.state).catch(() => push.state).then((st) => s.send({ type: "intro", state: redactIntro(st, viewer) }))
     }
   }
 })
@@ -141,10 +169,10 @@ function sse(attendee: string | null, req: Request) {
       write(`retry: 2000\n\n`)
       sub.send({ type: "event", view: await store.eventView() })
       if (attendee) {
-        const view = await store.attendeeView(attendee)
+        const view = await freshView(await store.attendeeView(attendee))
         sub.send({ type: "attendee", id: attendee, view })
         for (const m of view.matches) {
-          const s = await store.intro(m.introId)
+          const s = await freshIntro(await store.intro(m.introId))
           if (s) sub.send({ type: "intro", state: redactIntro(s, attendee) })
         }
       }
@@ -283,29 +311,29 @@ Bun.serve({
       if (req.method === "POST" && (r = m(/^\/api\/events\/([^/]+)\/join$/))) return await joinEventRoute(decodeURIComponent(r[1]), req)
       if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) {
         const view = await store.attendeeView(r[1])
-        return view.profile ? json(view) : json({ error: "attendee not found" }, 404)
+        return view.profile ? json(await freshView(view)) : json({ error: "attendee not found" }, 404)
       }
       if (req.method === "GET" && path === "/api/event") return json(await store.eventView())
       if (req.method === "GET" && path === "/api/stream") return sse(url.searchParams.get("attendee"), req)
       if (req.method === "GET" && (r = m(/^\/api\/intro\/([^/]+)$/))) {
-        const s = await store.intro(r[1])
+        const s = await freshIntro(await store.intro(r[1]))
         return s ? json(redactIntro(s, url.searchParams.get("as"))) : json({ error: "intro not found" }, 404)
       }
       if (req.method === "POST" && (r = m(/^\/api\/intro\/([^/]+)\/decide$/))) {
         const b = await body(req)
         const choice = b.choice as Choice
         if (choice !== "connect" && choice !== "pass") throw new HttpError(400, "choice must be connect or pass")
-        return json(redactIntro(await store.decide(r[1], String(b.attendeeId), choice), String(b.attendeeId)))
+        return json(redactIntro(await freshIntro(await store.decide(r[1], String(b.attendeeId), choice)), String(b.attendeeId)))
       }
       if (req.method === "POST" && (r = m(/^\/api\/intro\/([^/]+)\/chat$/))) {
         const b = await body(req)
-        return json(redactIntro(await store.chat(r[1], String(b.attendeeId), String(b.text ?? "")), String(b.attendeeId)))
+        return json(redactIntro(await freshIntro(await store.chat(r[1], String(b.attendeeId), String(b.text ?? ""))), String(b.attendeeId)))
       }
       if (req.method === "POST" && (r = m(/^\/api\/intro\/([^/]+)\/meet$/))) {
         const b = await body(req)
         const action = String(b.action ?? "request") as MeetAction
         if (!["request", "accept", "decline", "arrive"].includes(action)) throw new HttpError(400, "action must be request, accept, decline or arrive")
-        return json(redactIntro(await store.meet(r[1], String(b.attendeeId), action), String(b.attendeeId)))
+        return json(redactIntro(await freshIntro(await store.meet(r[1], String(b.attendeeId), action)), String(b.attendeeId)))
       }
       if (req.method === "POST" && (r = m(/^\/api\/conversation\/([^/]+)\/end$/))) {
         const b = await body(req)
