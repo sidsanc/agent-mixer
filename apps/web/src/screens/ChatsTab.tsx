@@ -38,7 +38,7 @@ export function ChatsTab({
             const ask = it?.meetNow?.status === "requested" && it.meetNow.requestedBy !== me
             return (
               <button key={m.introId} className="row-card" onClick={() => setOpen(m.introId)}>
-                <Avatar id={m.other.id} role={m.other.role} size={48} />
+                <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={48} />
                 <span className="row-text">
                   <strong>{m.other.name}</strong>
                   <small>{ask ? `${first(m.other.name)} wants to meet now` : last ? `${last.from === me ? "You: " : ""}${last.text}` : "Here now · say hi"}</small>
@@ -111,7 +111,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
         <button className="back" onClick={onBack} aria-label="Back to chats">
           ←
         </button>
-        <Avatar id={m.other.id} role={m.other.role} size={34} />
+        <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={34} />
         <span className="topline-who">
           <strong>{m.other.name}</strong>
           <small>
@@ -152,7 +152,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
       <div className="chat-lines">
         {lines.map((l) => (
           <div key={l.id} className={`chat-msg ${l.from === me ? "self" : ""}`}>
-            {l.from !== me && <Avatar id={m.other.id} role={m.other.role} size={28} />}
+            {l.from !== me && <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={28} />}
             <p>{l.text}</p>
           </div>
         ))}

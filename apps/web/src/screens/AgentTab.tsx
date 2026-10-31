@@ -97,7 +97,7 @@ export function AgentTab({ mx, me, onOpenMatches }: { mx: MixerState; me: string
                 const l = c.lines[c.lines.length - 1]
                 return (
                   <button key={c.id} className="mini-card" onClick={() => openLogs(c.id)}>
-                    <Avatar id={p.id} role={p.role} size={30} />
+                    <Avatar id={p.id} role={p.role} avatar={p.avatar} size={30} />
                     <span>
                       <strong>{first(p.name)}</strong>
                       <small>{l ? l.text : "Saying hello…"}</small>
@@ -202,7 +202,7 @@ function LogPanel({
     <>
       <div className="panel" ref={scroller}>
         <div className="profile-line">
-          <Avatar id={other.id} role={other.role} size={44} />
+          <Avatar id={other.id} role={other.role} avatar={other.avatar} size={44} />
           <div>
             <strong>
               {other.name} <i className={`dot st-${c.status}`} />
@@ -218,7 +218,7 @@ function LogPanel({
             const mine = l.from === me
             return (
               <div key={l.id} className={`turn ${mine ? "me" : ""}`}>
-                {!mine && <Avatar id={other.id} role={other.role} size={30} />}
+                {!mine && <Avatar id={other.id} role={other.role} avatar={other.avatar} size={30} />}
                 <div className="msg">
                   <b>{mine ? agentName : other.agentName}</b>
                   {l === last && active ? <Typewriter text={l.text} at={l.at} /> : l.text}
@@ -228,7 +228,7 @@ function LogPanel({
           })}
           {active && (
             <div className={`turn ${nextSpeaker === me ? "me" : ""}`}>
-              {nextSpeaker !== me && <Avatar id={other.id} role={other.role} size={30} />}
+              {nextSpeaker !== me && <Avatar id={other.id} role={other.role} avatar={other.avatar} size={30} />}
               <div className="msg typing" aria-label="typing">
                 <i />
                 <i />

@@ -132,7 +132,7 @@ export function MatchesTab({
             return (
               <div key={m.introId} className={`row-wrap ${e.phase === "incoming" ? "incoming" : ""}`}>
               <button className="row-card" onClick={() => setOpen(m.introId)}>
-                <Avatar id={m.other.id} role={m.other.role} size={48} />
+                <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={48} />
                 <span className="row-text">
                   <strong>
                     {m.other.name} · {ROLE_LABEL[m.other.role]}
@@ -234,7 +234,7 @@ function MatchDetail({
       <div className="detail-hero">
         <div className="pair-faces">
           <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} size={58} agent />
-          <Avatar id={o.id} role={o.role} size={58} />
+          <Avatar id={o.id} role={o.role} avatar={o.avatar} size={58} />
         </div>
         <h1>Meet {first(o.name)}</h1>
         <p className="lede">
