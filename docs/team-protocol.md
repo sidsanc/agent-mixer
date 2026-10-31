@@ -32,7 +32,7 @@ Every "done" message, in Linear or out loud:
 |---|---|
 | 11:20 | Shared data shape agreed; Julius's designs and profiles handed over |
 | 1:00 | One person signs up and appears in the event |
-| 2:00 | Two agents talk over Relay and propose a match; go/no-go on stretch (chat, external agent) |
+| 2:00 | Two agents talk over Relay and propose a match; go/no-go on stretch (external agent) |
 | 2:45 | Full demo rehearsal |
 | 3:15 | Feature freeze; record backup video |
 | 3:50 | Submitted on Builderbase |

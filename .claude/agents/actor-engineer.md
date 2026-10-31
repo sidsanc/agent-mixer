@@ -8,7 +8,7 @@ You build the Terse Durable Actors for Agent Mixer. Read `docs/research/terse-du
 Actors and what they own:
 - `Attendee` (one per person): name, role, goal, optional bio, shareable goal and private intent (kept separate), conversations, matches. `@Emittable` fields drive the phone UI.
 - `Event` (one event for the demo): roster and who is talking to whom. Each agent holds 2–3 conversations in parallel. An alarm starts new conversations as old ones end (about 20 seconds each in demo mode). No duplicate pairs at once. No LLM calls in this actor.
-- `Intro` (one per proposed match): created by an agent's `propose_match`. Records each human's Connect or Pass. The meeting card (meeting point, opener, contact) is released only when both choose Connect, exactly once; a double tap is idempotent. Stretch: holds chat messages. No LLM calls.
+- `Intro` (one per proposed match): created by an agent's `propose_match`. Records each human's Connect or Pass. The meeting card (meeting point, opener, contact) is released only when both choose Connect, exactly once; a double tap is idempotent. Also holds the human chat messages (core). No LLM calls.
 
 Rules:
 - `@Interleave` only on actors that call an LLM, because it turns off rollback for the whole class.
