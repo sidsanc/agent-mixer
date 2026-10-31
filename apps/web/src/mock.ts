@@ -3,6 +3,7 @@
 // before the real API is up. Matches the shared types exactly.
 import {
   introId,
+  MEET_NOW_TTL_MS,
   type AttendeeView,
   type Choice,
   type Conversation,
@@ -11,6 +12,7 @@ import {
   type IntroState,
   type Line,
   type MatchSummary,
+  type MeetAction,
   type PublicProfile,
   type ServerPush,
 } from "@agent-mixer/shared"
@@ -28,7 +30,7 @@ const SEEDS: PublicProfile[] = [
 ]
 
 function p(id: string, name: string, role: PublicProfile["role"], bio: string, goal: string): PublicProfile {
-  return { id, name, agentName: `${name.split(" ")[0]}'s agent`, role, bio, shareableGoal: goal, seeded: true }
+  return { id, name, agentName: `${name.split(" ")[0]}'s agent`, role, bio, shareableGoal: goal, seeded: true, attendance: "onsite" }
 }
 
 const POINTS = [
@@ -113,6 +115,7 @@ class MockEngine {
       role: b.role,
       bio: b.bio ?? "",
       shareableGoal: b.goal,
+      attendance: b.attendance ?? "onsite",
     }
     this.profiles.set(id, prof)
     this.me = id
@@ -249,14 +252,15 @@ class MockEngine {
   decide(iid: string, who: string, choice: Choice): IntroState {
     const it = this.intros.get(iid)
     if (!it) throw new Error("no intro")
-    if (it.choices[who] != null) return it // double tap is a no-op
+    if (it.status === "connected") return it // locked after both Connect
+    if (it.choices[who] === choice) return it // same choice twice is a no-op
     it.choices = { ...it.choices, [who]: choice }
     const vals = Object.values(it.choices)
     if (vals.includes("pass")) it.status = "passed"
-    else if (vals.every((v) => v === "connect") && !it.meeting) {
+    else if (vals.every((v) => v === "connect")) {
       it.status = "connected"
       this.connectedCount++
-      it.meeting = {
+      it.meeting ??= {
         point: POINTS[Math.floor(Math.random() * POINTS.length)],
         opener: it.opener,
         contacts: {
@@ -264,7 +268,7 @@ class MockEngine {
           [it.b]: contactFor(it.profiles[it.b]),
         },
       }
-    }
+    } else it.status = "pending"
     for (const id of [it.a, it.b]) {
       this.summaries.set(
         id,
@@ -291,20 +295,36 @@ class MockEngine {
     return it
   }
 
-  meet(iid: string, who: string, action: "request" | "accept"): IntroState {
+  meet(iid: string, who: string, action: MeetAction): IntroState {
     const it = this.intros.get(iid)!
+    const other = who === it.a ? it.b : it.a
     if (action === "request") {
-      it.meetNow = { requestedBy: who, at: Date.now(), accepted: false }
+      const at = Date.now()
+      it.meetNow = { requestedBy: who, at, accepted: false, status: "requested", expiresAt: at + MEET_NOW_TTL_MS, arrivedBy: [] }
       if (who === this.me) {
         setTimeout(() => {
-          if (it.meetNow && !it.meetNow.accepted) {
-            it.meetNow = { ...it.meetNow, accepted: true }
+          if (it.meetNow?.status === "requested") {
+            it.meetNow = { ...it.meetNow, accepted: true, status: "accepted", respondedBy: other }
             this.emitIntro(it)
           }
         }, 2500)
       }
-    } else if (it.meetNow) {
-      it.meetNow = { ...it.meetNow, accepted: true }
+    } else if (action === "accept" || action === "decline") {
+      if (it.meetNow?.status === "requested") {
+        it.meetNow = { ...it.meetNow, accepted: action === "accept", status: action === "accept" ? "accepted" : "declined", respondedBy: who }
+      }
+    } else if (action === "arrive" && it.meetNow?.status === "accepted") {
+      const arrived = it.meetNow.arrivedBy ?? []
+      if (!arrived.includes(who)) it.meetNow = { ...it.meetNow, arrivedBy: [...arrived, who] }
+      if (who === this.me) {
+        setTimeout(() => {
+          const a = it.meetNow?.arrivedBy ?? []
+          if (it.meetNow && !a.includes(other)) {
+            it.meetNow = { ...it.meetNow, arrivedBy: [...a, other] }
+            this.emitIntro(it)
+          }
+        }, 3000)
+      }
     }
     this.emitIntro(it)
     return it

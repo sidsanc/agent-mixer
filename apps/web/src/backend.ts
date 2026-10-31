@@ -2,7 +2,9 @@ import type {
   AttendeeView,
   Choice,
   EventView,
+  Attendance,
   IntroState,
+  MeetAction,
   Role,
   ServerPush,
 } from "@agent-mixer/shared"
@@ -12,6 +14,11 @@ export interface SignupBody {
   role: Role
   goal: string
   bio?: string
+  /** Private: the agent uses it to decide, never shares it. */
+  privateIntent?: string
+  attendance?: Attendance
+  /** Private until both Connect: how the other person can spot you. */
+  contact?: string
 }
 
 export interface Backend {
@@ -22,7 +29,7 @@ export interface Backend {
   intro(id: string, as: string): Promise<IntroState>
   decide(id: string, attendeeId: string, choice: Choice): Promise<IntroState>
   chat(id: string, attendeeId: string, text: string): Promise<IntroState>
-  meet(id: string, attendeeId: string, action: "request" | "accept"): Promise<IntroState>
+  meet(id: string, attendeeId: string, action: MeetAction): Promise<IntroState>
   endConversation(conversationId: string, attendeeId: string): Promise<{ ok: boolean }>
   /** Live pushes. Returns an unsubscribe function. */
   subscribe(attendeeId: string | null, onPush: (p: ServerPush) => void, onStatus?: (ok: boolean) => void): () => void
