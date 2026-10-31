@@ -6,7 +6,7 @@ import { useMixer } from "../useMixer"
 import { Avatar } from "../components/Avatar"
 import { Confetti } from "../components/Confetti"
 import { AgentTab } from "./AgentTab"
-import { MatchesTab, effective } from "./MatchesTab"
+import { MatchesTab, bothOnsite, effective } from "./MatchesTab"
 import { ChatsTab } from "./ChatsTab"
 import { EventsTab } from "./EventsTab"
 
@@ -23,6 +23,13 @@ export function Me() {
   const [toast, setToast] = useState<MatchSummary | null>(null)
   const [celebrate, setCelebrate] = useState<MatchSummary | null>(null)
   const [meetPing, setMeetPing] = useState<string | null>(null)
+  // Only call it "reconnecting" after the stream has been down for a moment.
+  const [offline, setOffline] = useState(false)
+  useEffect(() => {
+    if (mx.connected || mx.backend?.mode !== "live") return setOffline(false)
+    const t = setTimeout(() => setOffline(true), 1500)
+    return () => clearTimeout(t)
+  }, [mx.connected, mx.backend])
 
   useEffect(() => {
     if (!me) nav("/", { replace: true })
@@ -33,7 +40,7 @@ export function Me() {
     if (!me || !mx.backend) return
     if ((mx.backend.mode === "live" && me.startsWith("mock-")) || mx.notFound) {
       myId.clear()
-      nav("/", { replace: true })
+      nav(mx.notFound ? "/?expired=1" : "/", { replace: true })
     }
   }, [me, mx.backend, mx.notFound, nav])
 
@@ -55,7 +62,7 @@ export function Me() {
         }
       }
       const mn = mx.intros[m.introId]?.meetNow
-      if (mn && !mn.accepted && mn.requestedBy !== me && !seenMeet.current.has(`${m.introId}:${mn.at}`)) {
+      if (mn && (mn.status ?? (mn.accepted ? "accepted" : "requested")) === "requested" && mn.requestedBy !== me && !seenMeet.current.has(`${m.introId}:${mn.at}`)) {
         seenMeet.current.add(`${m.introId}:${mn.at}`)
         setMeetPing(m.introId)
       }
@@ -76,7 +83,8 @@ export function Me() {
     return e.status === "pending" && !e.myChoice
   }).length
   const chatCount = matches.filter((m) => effective(m, mx.intros[m.introId], me).status === "connected").length
-  const pingMatch = meetPing ? matches.find((m) => m.introId === meetPing) : null
+  const pingMatch = meetPing ? matches.find((m) => m.introId === meetPing && mx.intros[m.introId]?.meetNow?.status === "requested") : null
+  const celebrateCanMeet = celebrate ? bothOnsite(celebrate, mx.intros[celebrate.introId], me, mx) : false
 
   const go = (t: Tab) => {
     setTab(t)
@@ -94,10 +102,21 @@ export function Me() {
   return (
     <div className={`app tab-${tab}`}>
       <main className="app-main">
-        {tab === "events" && <EventsTab mx={mx} me={me} onEnter={() => go("agents")} />}
-        {tab === "agents" && <AgentTab mx={mx} me={me} onOpenMatches={() => go("matches")} />}
-        {tab === "matches" && <MatchesTab mx={mx} me={me} open={matchOpen} setOpen={setMatchOpen} onChat={openChat} />}
-        {tab === "chats" && <ChatsTab mx={mx} me={me} open={chatOpen} setOpen={setChatOpen} />}
+        {!mx.attendee ? (
+          <div className="page state-page" role="status">
+            <span className="typing-dots">
+              <i />
+              <i />
+              <i />
+            </span>
+            <strong>Loading your event…</strong>
+            <p>Restoring your agent and conversations.</p>
+          </div>
+        ) : null}
+        {mx.attendee && tab === "events" && <EventsTab mx={mx} me={me} onEnter={() => go("agents")} />}
+        {mx.attendee && tab === "agents" && <AgentTab mx={mx} me={me} onOpenMatches={() => go("matches")} />}
+        {mx.attendee && tab === "matches" && <MatchesTab mx={mx} me={me} open={matchOpen} setOpen={setMatchOpen} onChat={openChat} />}
+        {mx.attendee && tab === "chats" && <ChatsTab mx={mx} me={me} open={chatOpen} setOpen={setChatOpen} />}
       </main>
 
       <nav className="bottom-nav">
@@ -108,7 +127,11 @@ export function Me() {
       </nav>
 
       {mx.backend?.mode === "mock" && <div className="demo-tag">demo data</div>}
-      {mx.backend?.mode === "live" && !mx.connected && <div className="demo-tag warn">reconnecting…</div>}
+      {offline && (
+        <div className="net-banner" role="status">
+          Reconnecting… your agent keeps working; updates resume in a moment.
+        </div>
+      )}
 
       {toast && (
         <button
@@ -132,17 +155,16 @@ export function Me() {
           <Avatar id={pingMatch.other.id} role={pingMatch.other.role} size={38} />
           <span>
             <strong>{first(pingMatch.other.name)} wants to meet now</strong>
-            <small>Accept to reveal the meeting point.</small>
+            <small>Accept or decline in your chat.</small>
           </span>
           <button
             className="pill-btn cyan"
-            onClick={async () => {
+            onClick={() => {
               setMeetPing(null)
               openChat(pingMatch.introId)
-              if (mx.backend) mx.setIntro(await mx.backend.meet(pingMatch.introId, me, "accept"))
             }}
           >
-            Accept
+            Review
           </button>
         </div>
       )}
@@ -164,17 +186,19 @@ export function Me() {
               <h4>Start with this</h4>
               <p>“{(mx.intros[celebrate.introId]?.opener ?? celebrate.opener).replace(/^“|”$/g, "")}”</p>
             </div>
-            <button
-              className="cta pink"
-              onClick={async () => {
-                const id = celebrate.introId
-                setCelebrate(null)
-                openChat(id)
-                if (mx.backend) mx.setIntro(await mx.backend.meet(id, me, "request"))
-              }}
-            >
-              Meet now
-            </button>
+            {celebrateCanMeet && (
+              <button
+                className="cta pink"
+                onClick={async () => {
+                  const id = celebrate.introId
+                  setCelebrate(null)
+                  openChat(id)
+                  if (mx.backend) mx.backend.meet(id, me, "request").then(mx.setIntro, (e) => console.error(e))
+                }}
+              >
+                Meet now
+              </button>
+            )}
             <button
               className="cta ghost"
               onClick={() => {
