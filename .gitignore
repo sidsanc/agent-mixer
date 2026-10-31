@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.DS_Store
+
+# Local editor/tool folders that aren't part of the team setup
+.claude/agents/kfc/
+.claude/settings/
+.claude/system-prompts/
+.claude/settings.local.json
