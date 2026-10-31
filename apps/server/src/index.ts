@@ -249,7 +249,7 @@ async function signup(req: Request) {
     contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at ${EVENT_NAME}`,
   }
   await store.createAttendee(p)
-  const joined = b.join === true || (typeof b.eventId === "string" && b.eventId === LIVE_EVENT_ID)
+  const joined = b.join === true || (typeof b.eventId === "string" && (b.eventId === LIVE_EVENT_ID || b.eventId === EVENT_ID))
   if (joined) await joinLive(p)
   console.log(`[signup] ${name} (${role}) -> ${id}${joined ? " (joined)" : ""}`)
   return json({ attendeeId: id, joined })
@@ -263,7 +263,8 @@ async function listEvents(attendee: string | null) {
 
 async function joinEventRoute(eventId: string, req: Request) {
   const b = await body(req)
-  const ev = EVENTS.find((e) => e.id === eventId)
+  // The live event answers to the server's EVENT_ID and to the plain "haunted-hacks" alias.
+  const ev = eventId === EVENT_ID ? EVENTS[0] : EVENTS.find((e) => e.id === eventId)
   if (!ev) throw new HttpError(404, "event not found")
   if (!ev.live) throw new HttpError(409, "this event is not live yet")
   const attendeeId = String(b.attendeeId ?? "")
