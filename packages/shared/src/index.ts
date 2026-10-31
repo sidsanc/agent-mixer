@@ -67,6 +67,9 @@ export interface MatchSummary {
   myChoice: Choice | null
   status: IntroStatus
   createdAt: number
+  /** Connect requests (docs/architecture.md "Connect requests"): true when the other person tapped Connect and is waiting on me.
+   *  A Pass is never shown to the other side (silent decline). */
+  theyConnected?: boolean
 }
 
 export interface MeetingCard {
