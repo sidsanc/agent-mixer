@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react"
-import type { Choice, IntroState, MatchSummary, MeetAction } from "@agent-mixer/shared"
+import type { Choice, IntroState, IntroStatus, MatchSummary, MeetAction } from "@agent-mixer/shared"
 import { Avatar, ROLE_LABEL } from "../components/Avatar"
 import type { MixerState } from "../useMixer"
 
 const first = (n: string) => n.split(" ")[0]
 
+export type Phase = "new" | "incoming" | "sent" | "passed" | "connected"
+
+/** Viewer's side of a match. A Pass from the other person is never shown (silent decline):
+ *  status is "passed" only when *I* passed; otherwise it stays pending until both Connect. */
 export function effective(m: MatchSummary, it: IntroState | undefined, me: string) {
-  return {
-    status: it?.status ?? m.status,
-    myChoice: (it?.choices?.[me] ?? m.myChoice) as Choice | null,
-  }
+  const raw = it?.status ?? m.status
+  const myChoice = (it?.choices?.[me] ?? m.myChoice) as Choice | null
+  const theyConnected = !!m.theyConnected || it?.choices?.[m.other.id] === "connect"
+  const status: IntroStatus = raw === "connected" ? "connected" : myChoice === "pass" ? "passed" : "pending"
+  const phase: Phase =
+    status === "connected"
+      ? "connected"
+      : status === "passed"
+        ? "passed"
+        : myChoice === "connect"
+          ? "sent"
+          : theyConnected
+            ? "incoming"
+            : "new"
+  return { status, myChoice, theyConnected, phase }
 }
 
 type Section = "new" | "connected" | "passed"
@@ -35,6 +50,7 @@ export function MatchesTab({
   }
 
   const [restoring, setRestoring] = useState<string | null>(null)
+  const [quickBusy, setQuickBusy] = useState<string | null>(null)
   const current = open ? matches.find((m) => m.introId === open) : null
   if (current) {
     return (
@@ -56,7 +72,23 @@ export function MatchesTab({
 
   const counts = { new: 0, connected: 0, passed: 0 }
   for (const m of matches) counts[sectionOf(m)]++
-  const list = matches.filter((m) => sectionOf(m) === section).sort((x, y) => y.createdAt - x.createdAt)
+  const rank = (m: MatchSummary) => (effective(m, mx.intros[m.introId], me).phase === "incoming" ? 1 : 0)
+  const list = matches
+    .filter((m) => sectionOf(m) === section)
+    .sort((x, y) => rank(y) - rank(x) || y.createdAt - x.createdAt)
+
+  async function quick(introId: string, choice: Choice) {
+    if (!mx.backend || quickBusy) return
+    setQuickBusy(introId)
+    try {
+      mx.setIntro(await mx.backend.decide(introId, me, choice))
+      mx.refresh()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setQuickBusy(null)
+    }
+  }
 
   return (
     <div className="page">
@@ -86,16 +118,19 @@ export function MatchesTab({
           {list.map((m) => {
             const e = effective(m, mx.intros[m.introId], me)
             const label =
-              e.status === "connected"
-                ? "Connected · chat open"
-                : e.myChoice === "connect"
-                  ? `Waiting for ${first(m.other.name)}`
-                  : e.status === "passed"
-                    ? e.myChoice === "pass" ? "Passed · restore any time" : "Not this time"
-                    : "New · review"
-            const canRestore = e.status === "passed" && e.myChoice === "pass"
+              e.phase === "connected"
+                ? "You're connected · chat open"
+                : e.phase === "sent"
+                  ? `Request sent · Waiting for ${first(m.other.name)}`
+                  : e.phase === "incoming"
+                    ? `${first(m.other.name)} wants to connect`
+                    : e.phase === "passed"
+                      ? "Passed · restore any time"
+                      : "New · review"
+            const canRestore = e.phase === "passed"
+            const pill = e.phase === "sent" ? "s-waiting" : e.phase === "incoming" ? "s-incoming" : ""
             return (
-              <div key={m.introId} className="row-wrap">
+              <div key={m.introId} className={`row-wrap ${e.phase === "incoming" ? "incoming" : ""}`}>
               <button className="row-card" onClick={() => setOpen(m.introId)}>
                 <Avatar id={m.other.id} role={m.other.role} size={48} />
                 <span className="row-text">
@@ -103,10 +138,20 @@ export function MatchesTab({
                     {m.other.name} · {ROLE_LABEL[m.other.role]}
                   </strong>
                   <small>{m.why}</small>
-                  <em className={`status-pill s-${e.status} ${e.myChoice === "connect" && e.status === "pending" ? "s-waiting" : ""}`}>{label}</em>
+                  <em className={`status-pill s-${e.status} ${pill}`}>{label}</em>
                 </span>
                 <span className="chev">›</span>
               </button>
+              {e.phase === "incoming" && (
+                <div className="row-actions">
+                  <button className="pill-btn ghost" onClick={() => quick(m.introId, "pass")} disabled={!!quickBusy}>
+                    Decline
+                  </button>
+                  <button className="pill-btn cyan" onClick={() => quick(m.introId, "connect")} disabled={!!quickBusy}>
+                    {quickBusy === m.introId ? "…" : "Accept"}
+                  </button>
+                </div>
+              )}
               {canRestore && (
                 <button
                   className="pill-btn cyan restore"
@@ -149,7 +194,7 @@ function MatchDetail({
   // Choices stay reversible until both Connect; "reconsider" shows Connect/Pass again.
   const [reconsider, setReconsider] = useState(!!startReconsider)
   const [notice, setNotice] = useState<string | null>(null)
-  const { status, myChoice } = effective(m, it, me)
+  const { status, phase, theyConnected } = effective(m, it, me)
   const o = m.other
 
   async function decide(choice: Choice, after?: () => void) {
@@ -172,10 +217,10 @@ function MatchDetail({
       setReconsider(false)
       setNotice(null)
     })
-  const undoConnect = () =>
+  const withdraw = () =>
     decide("pass", () => {
-      setReconsider(true)
-      setNotice("Connect withdrawn. Nothing was shared.")
+      setReconsider(false)
+      setNotice("Request withdrawn. Nothing was shared.")
     })
 
   return (
@@ -220,15 +265,15 @@ function MatchDetail({
         <p>“{(it?.opener ?? m.opener).replace(/^“|”$/g, "")}”</p>
       </section>
 
-      {status === "connected" ? (
+      {phase === "connected" ? (
         <>
-          <div className="presence-line">You both chose Connect. This match is locked and your human chat is open.</div>
+          <div className="presence-line">You're connected. This match is locked and your human chat is open.</div>
           <button className="cta cyan" onClick={onChat}>
             Open chat with {first(o.name)}
           </button>
           <MeetPanel m={m} it={it} me={me} mx={mx} />
         </>
-      ) : (status === "passed" && myChoice === "pass") || reconsider ? (
+      ) : phase === "passed" || reconsider ? (
         <>
           {notice ? (
             <p className="note">{notice}</p>
@@ -238,24 +283,22 @@ function MatchDetail({
             <p className="note">
               You passed. Nothing was shared.{" "}
               <button className="inline-link" onClick={() => setReconsider(true)}>
-                Undo
+                Restore
               </button>
             </p>
           )}
-          {reconsider && (
+          {(reconsider || notice) && (
             <div className="decide">
-              <button className="cta ghost" onClick={() => choose("pass")} disabled={!!busy}>
+              <button className="cta ghost" onClick={() => choose("pass")} disabled={!!busy || phase === "passed"}>
                 Pass
               </button>
               <button className="cta cyan" onClick={() => choose("connect")} disabled={!!busy}>
-                {busy === "connect" ? "Connecting…" : "Connect"}
+                {busy === "connect" ? "Sending…" : theyConnected ? "Accept" : "Connect"}
               </button>
             </div>
           )}
         </>
-      ) : status === "passed" ? (
-        <p className="note">Not this time. Nothing was shared.</p>
-      ) : myChoice === "connect" ? (
+      ) : phase === "sent" ? (
         <div className="waiting-box">
           <span className="typing-dots">
             <i />
@@ -263,22 +306,37 @@ function MatchDetail({
             <i />
           </span>
           <div>
-            <strong>Waiting for the other person</strong>
-            <span>You chose Connect. Nothing private is released until {first(o.name)} connects too.</span>
+            <strong>Request sent · Waiting for {first(o.name)}</strong>
+            <span>Nothing private is released until {first(o.name)} accepts.</span>
           </div>
-          <button className="text-btn" onClick={undoConnect} disabled={!!busy}>
-            {busy === "pass" ? "Undoing…" : "Undo"}
+          <button className="text-btn" onClick={withdraw} disabled={!!busy}>
+            {busy === "pass" ? "Withdrawing…" : "Withdraw"}
           </button>
         </div>
+      ) : phase === "incoming" ? (
+        <section className="meet-ask connect-ask">
+          <div>
+            <strong>{first(o.name)} wants to connect</strong>
+            <span>Accept to open a private chat with {first(o.name)}. Declining is silent.</span>
+          </div>
+          <div className="meet-ask-actions">
+            <button className="cta ghost dark" onClick={() => choose("pass")} disabled={!!busy}>
+              {busy === "pass" ? "…" : "Decline"}
+            </button>
+            <button className="cta cyan" onClick={() => choose("connect")} disabled={!!busy}>
+              {busy === "connect" ? "…" : "Accept"}
+            </button>
+          </div>
+        </section>
       ) : (
         <>
-          <p className="note">Neither side has connected yet. Contact details stay private.</p>
+          <p className="note">Connect sends {first(o.name)} a request. Contact details stay private.</p>
           <div className="decide">
             <button className="cta ghost" onClick={() => choose("pass")} disabled={!!busy}>
               Pass
             </button>
             <button className="cta cyan" onClick={() => choose("connect")} disabled={!!busy}>
-              {busy === "connect" ? "Connecting…" : "Connect"}
+              {busy === "connect" ? "Sending…" : "Connect"}
             </button>
           </div>
         </>

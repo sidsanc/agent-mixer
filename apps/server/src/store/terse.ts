@@ -12,7 +12,7 @@ import {
 } from "@agent-mixer/shared"
 import { actors, ActorProxy, type ActorAuthorization } from "../generated/index.js"
 import { HttpError } from "./memory"
-import { MEETING_POINTS, meetNowTtl, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, summaryFields, toPublic, type Store } from "./types"
 
 const EVENT_POLL_MS = Number(process.env.TERSE_EVENT_POLL_MS ?? 1500)
 
@@ -173,8 +173,7 @@ export class TerseStore implements Store {
     let s: IntroState
     try { s = (await intro(id).decide(attendeeId, c)) as IntroState } catch (e) { mapError(e) }
     await Promise.all([
-      att(s.a).updateMatch(s.id, s.choices[s.a] ?? null, s.status),
-      att(s.b).updateMatch(s.id, s.choices[s.b] ?? null, s.status),
+      ...[s.a, s.b].map((id) => { const f = summaryFields(s, id); return att(id).updateMatch(s.id, f.myChoice, f.status, f.theyConnected) }),
       s.status === "connected" ? ev().recordConnected(s.id) : Promise.resolve(),
     ])
     this.emitIntro(s)

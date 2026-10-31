@@ -91,3 +91,10 @@ LLM: each turn waits at most `LLM_TIMEOUT_MS` (6s); a failed or slow call uses t
 Pairing follows `docs/architecture/router.md`: bilateral scoring, greedy allocation, three-slot leases with expiry (`LEASE_MS`) and dynamic refill. Both stores use `mutualScore()` from `@agent-mixer/shared`, the geometric mean of `directionalScore()` in both directions. `PublicProfile.plantedFor` boosts planted partners, so they land in the first batch. `propose_match` carries `{conversationId, counterpartId, fitScore, reason, youOffer, theyOffer, opener}` and is deduplicated by `conversationId`. Every attendee keeps a distinct Relay identity, and lines are real Relay DMs.
 
 Design: follow `docs/design/mobile-flow-framework.md`, `mobile-flow-wireframe.html` and `vice-agent-world.html` ("Vice City Social"). In the hackathon build, the Agent screen is the venue world with avatars and speech bubbles; full transcripts sit behind "Chat logs".
+
+## Connect requests (added 14:00, agreed with Siddhant)
+
+Either person can go first. Their Connect becomes a visible request: the other person's match card shows "X wants to connect" with Accept and Decline. Accept is a Connect, and it opens chat for both (Intro unlocks exactly once).
+- **Visibility:** in each viewer's data, the other person's choice is shown only when it is `connect` (`MatchSummary.theyConnected`, and `IntroState.choices[other]` = `"connect"` or `null`). A Pass is never shown to the other side; that is the silent decline. The sender keeps seeing "Request sent · Waiting".
+- **Withdraw:** the sender can withdraw (switch to Pass) until both Connect.
+- **Seed agents act as their own human.** When a human connects with a seed agent that judged the conversation a fit, the seed accepts after 2–5s. Seeds reply in the human chat (LLM, in character) and accept Meet now, then mark arrived, so the demo never stalls.

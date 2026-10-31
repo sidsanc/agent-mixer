@@ -109,10 +109,13 @@ export class Attendee extends Actor<{ attendeeId: string }, { type: "ping" }, { 
     this.matches = [m, ...this.matches]
   }
 
-  async updateMatch(introId: string, myChoice: Choice | null, status: MatchSummary["status"]): Promise<void> {
+  /** status is the viewer's status (the other side's Pass reads as pending); theyConnected: the other side is waiting on me. */
+  async updateMatch(introId: string, myChoice: Choice | null, status: MatchSummary["status"], theyConnected?: boolean): Promise<void> {
     const cur = this.matches.find(m => m.introId === introId)
-    if (!cur || (cur.myChoice === myChoice && cur.status === status)) return
-    this.matches = this.matches.map(m => (m.introId === introId ? { ...m, myChoice, status } : m))
+    if (!cur) return
+    const they = theyConnected ?? cur.theyConnected ?? false
+    if (cur.myChoice === myChoice && cur.status === status && (cur.theyConnected ?? false) === they) return
+    this.matches = this.matches.map(m => (m.introId === introId ? { ...m, myChoice, status, theyConnected: they } : m))
   }
 }
 

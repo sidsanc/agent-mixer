@@ -7,8 +7,9 @@ import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
 import { llmProvider, llmStats } from "./agents/llm"
-import { meetNowTtl } from "./store/types"
+import { maskIntro, meetNowTtl } from "./store/types"
 import { speed } from "./agents/engine"
+import { SeedHumans } from "./agents/seedHuman"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
 
@@ -55,6 +56,8 @@ async function makeStore(): Promise<{ store: Store; kind: string }> {
 
 const { store, kind: storeKind } = await makeStore()
 const engine = new Engine(store)
+// Seeds answer Connect, chat and Meet now as their own human (SEED_HUMANS=0 turns it off).
+if (process.env.SEED_HUMANS !== "0") new SeedHumans(store)
 engine.setTransport(new DirectTransport(engine))
 
 // ---------- seed ----------
@@ -134,6 +137,7 @@ function sse(attendee: string | null, req: Request) {
       subs.add(sub)
       ping = setInterval(() => write(`: ping\n\n`), 15000)
       req.signal.addEventListener("abort", () => { cleanup(); try { ctrl.close() } catch {} })
+      write(`: ok\n\n`) // first bytes right away so proxies (Cloudflare tunnel) open the stream
       write(`retry: 2000\n\n`)
       sub.send({ type: "event", view: await store.eventView() })
       if (attendee) {
@@ -148,7 +152,7 @@ function sse(attendee: string | null, req: Request) {
     cancel() { subs.delete(sub); clearInterval(ping) },
   })
   return new Response(stream, {
-    headers: { ...CORS, "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" },
+    headers: { ...CORS, "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", "x-accel-buffering": "no", connection: "keep-alive" },
   })
 }
 
@@ -198,10 +202,11 @@ async function signup(req: Request) {
   return json({ attendeeId: id })
 }
 
-/** Contacts only leave the server once both sides chose Connect, and only to the two of them. */
+/** Contacts only leave the server once both sides chose Connect, and only to the two of them.
+ *  The other side's Pass is never shown (silent decline): maskIntro turns it into null / "pending". */
 function redactIntro(s: any, as: string | null) {
   if (!s) return s
-  const out = structuredClone(s)
+  const out = structuredClone(maskIntro(s, as))
   if (out.meeting && (out.status !== "connected" || !as || (as !== out.a && as !== out.b))) out.meeting.contacts = {}
   if (!as || (as !== out.a && as !== out.b)) out.chat = []
   return out

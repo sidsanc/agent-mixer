@@ -1,6 +1,3 @@
-// COPY of packages/shared/src/index.ts (types only). The Terse compiler builds only src/, so the
-// workspace package is not imported here. Keep in step with packages/shared when the contract changes.
-
 // Shared contract for Agent Mixer. Actors, server and web all import from here.
 // Change it only with a note in docs/architecture.md; all three sides depend on it.
 
@@ -70,6 +67,9 @@ export interface MatchSummary {
   myChoice: Choice | null
   status: IntroStatus
   createdAt: number
+  /** Connect requests (docs/architecture.md "Connect requests"): true when the other person tapped Connect and is waiting on me.
+   *  A Pass is never shown to the other side (silent decline). */
+  theyConnected?: boolean
 }
 
 export interface MeetingCard {

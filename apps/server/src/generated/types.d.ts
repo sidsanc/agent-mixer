@@ -31,7 +31,13 @@ interface $AttendeeContract {
         getProfile(): Promise<Profile | null>
         /** Adds the conversation (newest first) if it is not there yet. */
         startConversation(c: Conversation): Promise<void>
-        updateMatch(introId: string, myChoice: Choice | null, status: MatchSummary["status"]): Promise<void>
+        /** status is the viewer's status (the other side's Pass reads as pending); theyConnected: the other side is waiting on me. */
+        updateMatch(
+            introId: string,
+            myChoice: Choice | null,
+            status: MatchSummary["status"],
+            theyConnected?: boolean
+        ): Promise<void>
         view(): Promise<AttendeeView>
     }
 }
@@ -198,6 +204,9 @@ interface MatchSummary {
     myChoice: Choice | null
     status: IntroStatus
     createdAt: number
+    /** Connect requests (docs/architecture.md "Connect requests"): true when the other person tapped Connect and is waiting on me.
+     *  A Pass is never shown to the other side (silent decline). */
+    theyConnected?: boolean
 }
 interface MeetNow {
     requestedBy: string

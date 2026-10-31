@@ -42,3 +42,31 @@ export const MEETING_POINTS = [
   "The couch corner under the paper bats",
   "The snack table next to the cauldron",
 ]
+
+// ---------- Connect requests: visible requests, silent decline (docs/architecture.md "Connect requests") ----------
+
+/** What `viewer` may see of the intro status: the other side's Pass never shows, so it reads as still pending. */
+export function viewerStatus(s: Pick<IntroState, "a" | "b" | "choices" | "status">, viewer: string): IntroState["status"] {
+  if (s.status !== "passed") return s.status
+  return s.choices[viewer] === "pass" ? "passed" : "pending"
+}
+
+/** true when the other person chose Connect and is waiting on `viewer`. */
+export function theyConnected(s: Pick<IntroState, "a" | "b" | "choices" | "status">, viewer: string): boolean {
+  const other = viewer === s.a ? s.b : s.a
+  return s.choices[other] === "connect" && viewerStatus(s, viewer) === "pending" && s.status !== "connected"
+}
+
+/** Per-viewer copy of an intro: every Pass that is not the viewer's own becomes null. */
+export function maskIntro(s: IntroState, viewer: string | null): IntroState {
+  const choices: IntroState["choices"] = {}
+  for (const [id, c] of Object.entries(s.choices)) choices[id] = c === "pass" && id !== viewer ? null : c
+  const isParty = !!viewer && (viewer === s.a || viewer === s.b)
+  const status = isParty ? viewerStatus(s, viewer!) : s.status === "passed" ? "pending" : s.status
+  return { ...s, choices, status }
+}
+
+/** The fields of `viewer`'s MatchSummary that follow the intro's decisions. */
+export function summaryFields(s: IntroState, viewer: string): Pick<MatchSummary, "myChoice" | "status" | "theyConnected"> {
+  return { myChoice: s.choices[viewer] ?? null, status: viewerStatus(s, viewer), theyConnected: theyConnected(s, viewer) }
+}

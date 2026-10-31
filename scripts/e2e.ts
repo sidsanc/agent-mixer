@@ -181,12 +181,23 @@ async function main() {
   const fView1 = JSON.stringify(await view(F))
   report(!contactsVisible(asF1) && !contactsVisible(asI1) && !fView1.includes(investor.contact) && !JSON.stringify(asF1).includes(investor.contact),
     "one-sided connect leaks no contact")
+  // Connect requests: the founder sees the investor's Connect as a visible request.
+  const asF1r = (await api<IntroState>("GET", `/api/intro/${introId}?as=${F}`)).data
+  const mF1 = (await view(F)).matches.find((m) => m.introId === introId)
+  report(asF1r.choices[I] === "connect" && mF1?.theyConnected === true && mF1.myChoice === null,
+    "founder sees the investor's connect request (theyConnected)", `choice=${asF1r.choices[I]} theyConnected=${mF1?.theyConnected}`)
+  const sseReqF = await waitFor(async () => sF.intros(introId).some((x) => x.choices[I] === "connect"), 5000, 250)
+  report(!!sseReqF, "connect request is pushed over SSE to the founder")
   const dup = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "connect" })
   report(dup.data?.choices?.[I] === "connect" && dup.data.status === "pending", "double tap is a no-op", `choice=${dup.data?.choices?.[I]}`)
   const undo1 = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "pass" })
   report(undo1.data?.status === "passed" && undo1.data.choices[I] === "pass", "connect can be changed to pass", `status=${undo1.data?.status}`)
   const mPassed = (await view(I)).matches.find((m) => m.introId === introId)
   report(mPassed?.status === "passed" && mPassed.myChoice === "pass", "match summary shows passed (recoverable)")
+  const mFw = (await view(F)).matches.find((m) => m.introId === introId)
+  const asFw = (await api<IntroState>("GET", `/api/intro/${introId}?as=${F}`)).data
+  report(mFw?.theyConnected === false && asFw.choices[I] === null && asFw.status === "pending" && mFw.status === "pending",
+    "withdrawn request: founder's theyConnected is false and the pass is invisible", `theyConnected=${mFw?.theyConnected} choice=${asFw.choices[I]} status=${asFw.status}`)
   const undo2 = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "connect" })
   report(undo2.data?.status === "pending" && undo2.data.choices[I] === "connect", "pass can be undone back to connect", `status=${undo2.data?.status}`)
   report(!contactsVisible(undo2.data), "undo flips leak no contact")
@@ -194,6 +205,18 @@ async function main() {
   report(early.status === 409, "chat is closed before mutual connect", `got ${early.status}`)
   const stranger = await api("POST", `/api/intro/${introId}/decide`, { attendeeId: T, choice: "connect" })
   report(stranger.status === 403, "a third person cannot decide on the intro", `got ${stranger.status}`)
+
+  // ---- silent decline: the founder passes, the investor keeps waiting ----
+  const fPass = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: F, choice: "pass" })
+  report(fPass.data?.choices?.[F] === "pass" && fPass.data.status === "passed", "founder passes (sees own pass)")
+  const asIp = (await api<IntroState>("GET", `/api/intro/${introId}?as=${I}`)).data
+  const mIp = (await view(I)).matches.find((m) => m.introId === introId)
+  report(asIp.choices[F] === null && asIp.status === "pending" && mIp?.status === "pending" && mIp.myChoice === "connect",
+    "investor never sees the pass (still waiting)", `choice=${asIp.choices[F]} status=${asIp.status} summary=${mIp?.status}`)
+  await Bun.sleep(500)
+  report([sI1, sI2].every((s) => s.intros(introId).every((x) => x.choices[F] !== "pass")) &&
+    !JSON.stringify((await view(I)).matches).includes('"passed"'),
+    "investor's SSE and view never carry the founder's pass")
 
   // ---- mutual connect ----
   const d2 = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: F, choice: "connect" })
@@ -288,6 +311,40 @@ async function main() {
     report(ch.status === 200, "agent-only person can chat")
     const mn = await api("POST", `/api/intro/${m2!.introId}/meet`, { attendeeId: I, action: "request" })
     report(mn.status === 409 && /onsite/.test(mn.data?.error ?? ""), "meet now is refused unless both are onsite", `${mn.status} ${mn.data?.error}`)
+  }
+
+  // ---- seed agents act as their own human ----
+  const sT = stream(T)
+  const mS = await waitFor(async () => (await view(T)).matches.find((m) => m.other.seeded), MATCH_MS, 1000)
+  if (report(!!mS, "third human matches a seed agent", mS ? `${mS.other.name} ${mS.introId}` : "none")) {
+    const sid = mS!.introId, seedId = mS!.other.id
+    const tc = Date.now()
+    await api("POST", `/api/intro/${sid}/decide`, { attendeeId: T, choice: "connect" })
+    const conn = await waitFor(async () => {
+      const s = (await api<IntroState>("GET", `/api/intro/${sid}?as=${T}`)).data
+      return s.status === "connected" && s.choices[seedId] === "connect" ? s : null
+    }, 8000, 250)
+    report(!!conn, "seed connects back within 8s", conn ? `${((Date.now() - tc) / 1000).toFixed(1)}s` : "timeout")
+    if (conn) {
+      await api("POST", `/api/intro/${sid}/chat`, { attendeeId: T, text: `Hi! What are you building? ${run}` })
+      const rep = await waitFor(async () => {
+        const s = (await api<IntroState>("GET", `/api/intro/${sid}?as=${T}`)).data
+        return s.chat.find((l) => l.from === seedId)
+      }, 12_000, 500)
+      report(!!rep, "seed replies in the chat", rep?.text.slice(0, 80) ?? "none")
+      report(sT.intros(sid).some((x) => x.chat.some((l) => l.from === seedId)), "seed reply is pushed over SSE")
+      await api("POST", `/api/intro/${sid}/meet`, { attendeeId: T, action: "request" })
+      const acc = await waitFor(async () => {
+        const s = (await api<IntroState>("GET", `/api/intro/${sid}?as=${T}`)).data
+        return s.meetNow?.status === "accepted" && s.meetNow.respondedBy === seedId ? s : null
+      }, 7000, 250)
+      report(!!acc, "seed accepts Meet now")
+      const arr = await waitFor(async () => {
+        const s = (await api<IntroState>("GET", `/api/intro/${sid}?as=${T}`)).data
+        return s.meetNow?.arrivedBy?.includes(seedId)
+      }, 9000, 250)
+      report(!!arr, "seed marks arrived")
+    }
   }
 
   // ---- end conversation ----

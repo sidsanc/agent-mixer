@@ -5,7 +5,7 @@ import {
   type EventView, type FeedItem, type IntroState, type Line, type MatchSummary, type Profile,
   type PublicProfile, type ServerPush,
 } from "@agent-mixer/shared"
-import { MEETING_POINTS, meetNowTtl, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, summaryFields, toPublic, type Store } from "./types"
 
 const CONV_CAP = 12
 const FEED_CAP = 40
@@ -226,7 +226,7 @@ export class MemoryStore implements Store {
   private syncSummaries(s: IntroState) {
     for (const id of [s.a, s.b]) {
       this.matches.set(id, (this.matches.get(id) ?? []).map((m) =>
-        m.introId === s.id ? { ...m, myChoice: s.choices[id] ?? null, status: s.status } : m))
+        m.introId === s.id ? { ...m, ...summaryFields(s, id) } : m))
     }
   }
 
