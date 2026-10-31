@@ -9,6 +9,7 @@ Your agent works the room, so you only have the conversations worth having. Your
 - Julius uses Codex, which reads `AGENTS.md`. Keep `CLAUDE.md` and `AGENTS.md` in step when you change a rule.
 
 ## Hard rules
+- Every major change or bug fix goes through a PR titled `[YC-xx] ...`, with a short description and small, focused commits. See `docs/team-protocol.md`.
 - **All app code is written at the hackathon (Oct 31, from 11:00).** Before that, only setup, docs, designs and content. Never add app code earlier.
 - `docs/brief.md` is the source of truth for product decisions. Where docs disagree, the brief wins.
 - Pinned versions live in `setup/versions.env`.

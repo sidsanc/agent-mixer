@@ -36,3 +36,9 @@ Every "done" message, in Linear or out loud:
 | 2:45 | Full demo rehearsal |
 | 3:15 | Feature freeze; record backup video |
 | 3:50 | Submitted on Builderbase |
+
+## PRs and commits
+- Every major change or bug fix goes through a PR. Work on a branch per ticket, e.g. `yc-20-intro-actor`.
+- The PR title starts with the ticket in square brackets: `[YC-20] Intro actor: exactly-once meeting card`.
+- Keep the PR description short: what changed, how it was tested, and limits. No code dumps.
+- Several commits per ticket are fine. Keep each commit small and focused, so any one can be rolled back on its own.
