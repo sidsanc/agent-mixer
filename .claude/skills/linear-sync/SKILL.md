@@ -9,8 +9,12 @@ Linear is the shared board between the two Claudes and the two humans. The Linea
 
 ## Board
 - **Team:** Agent Mixer. **Project:** Haunted Hacks.
+- **Milestones and tickets:** defined in `docs/linear-plan.md` (M0 Prep → M6 Ship). Each ticket title starts with its ID, e.g. "M2-2 Event actor: roster, pairing, alarm-driven rounds".
 - **Statuses:** Todo, Now, Blocked, Done, Cut. Keep at most one issue in Now per person.
-- **Labels:** `eng` (Siddhant) or `product` (Julius). Assign the issue to its human owner.
+- **Labels:** owner `eng` (Siddhant) or `product` (Julius), plus one area label (`backend`, `agents`, `frontend`, `design`, `content`, `pitch`, `ops`). Assign the issue to its human owner.
+
+## First-time setup (once, by whoever connects Linear first)
+If the project has no milestones yet: create the project, the 7 milestones, the labels, and one issue per row of `docs/linear-plan.md`, with the "Done when" text as the description. Search first so nothing is created twice.
 
 ## At the start of a session
 1. List open issues in the project. Note anything Blocked that's waiting on your side.
