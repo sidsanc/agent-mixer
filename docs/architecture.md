@@ -17,8 +17,8 @@ Written at 12:50 on Oct 31 to let three builders work in parallel. Types live in
 2. The `Event` actor's alarm (every ~3s) pairs agents: each one gets up to `maxParallel` conversations, with no duplicate pair at once and no repeat pair. New pairs go into a pending queue. No LLM calls.
 3. The server's bridge claims pending conversations (`claimPending`). For each one, both agents talk over **Agent Relay**: each attendee is a registered Relay agent (`am-<id>`), and each line is a Relay DM. The bridge's listener receives the DM, runs the receiver's LLM turn and replies. Every line is appended to both `Attendee` actors and the `Event` feed.
 4. After `linesPerConversation` lines, each agent privately decides "fit or not" using its private intent. If both say fit, the initiator calls the Relay typed action **`propose_match`** (why, offers, summary, opener). Its handler creates the `Intro` actor and adds a `MatchSummary` to both attendees.
-5. Each phone shows the match card; `/api/intro/:id/decide` records Connect or Pass in `Intro`. On mutual Connect, `Intro` sets `meeting` exactly once. A double tap is a no-op.
-6. After connect: human chat (`/api/intro/:id/chat`, stored in `Intro`) and Meet now (`/api/intro/:id/meet`).
+5. Each phone shows the match card; `/api/intro/:id/decide` records Connect or Pass in `Intro`. Choices are reversible (Connect <-> Pass, so a Pass is recoverable) while the intro is `pending` or `passed`; on mutual Connect the intro locks (`connected`), and `Intro` sets `meeting` exactly once. The same choice twice is a no-op.
+6. After connect: human chat (`/api/intro/:id/chat`, stored in `Intro`) and Meet now (`/api/intro/:id/meet`). Meet now needs both people `onsite`: `request` -> `accept` | `decline` | expiry (`MEET_NOW_TTL_MS`, 5 min; the `Intro` alarm flips it to `expired`, and the server pushes it), then each person may `arrive`. Declined or expired returns the pair to chat; a new request is allowed. Agent-only attendees keep the agent world, matches and chat.
 
 Private intent and contact never enter a Relay message or any web response before mutual Connect.
 
@@ -29,7 +29,7 @@ Private intent and contact never enter a Relay message or any web response befor
 - `memory.ts`: in-process. It is the dev default and the demo fallback if Terse fails.
 - `terse.ts`: it calls the generated Terse client.
 
-`STORE=memory|terse` picks one. Both push live updates through `onChange` so the server can also stream them.
+`STORE` defaults to `terse`; `STORE=memory` forces the in-process store. At startup the server probes the Terse actors (`TERSE_PROBE_MS`, 4s); if they are unreachable it falls back to memory with a loud log, and `/api/health` reports the store in use. Seeding is idempotent on restart (`Event.join` upserts by id). Both push live updates through `onChange` so the server can also stream them.
 
 ```ts
 interface Store {
@@ -47,7 +47,7 @@ interface Store {
   intro(id: string): Promise<IntroState | null>
   decide(id: string, attendeeId: string, c: Choice): Promise<IntroState>
   chat(id: string, attendeeId: string, text: string): Promise<IntroState>
-  meet(id: string, attendeeId: string, action: "request" | "accept"): Promise<IntroState>
+  meet(id: string, attendeeId: string, action: MeetAction): Promise<IntroState> // request | accept | decline | arrive
   onChange(fn: (push: ServerPush) => void): void
 }
 ```
@@ -56,15 +56,16 @@ interface Store {
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/api/signup` | `{name, role, goal, bio?}` | `{attendeeId}` |
-| GET | `/api/attendee/:id` | | `AttendeeView` |
+| POST | `/api/signup` | `{name, role, goal, bio?, privateIntent?, contact?, attendance?}` | `{attendeeId}`. `attendance` is `onsite` (default) or `agent-only` and is public; `privateIntent` and `contact` are stored privately and never emitted. |
+| GET | `/api/attendee/:id` | | `AttendeeView`; 404 for an unknown id |
 | GET | `/api/event` | | `EventView` |
 | GET | `/api/intro/:id?as=<attendeeId>` | | `IntroState`. Contacts are hidden unless connected. |
 | POST | `/api/intro/:id/decide` | `{attendeeId, choice}` | `IntroState` |
 | POST | `/api/intro/:id/chat` | `{attendeeId, text}` | `IntroState` |
-| POST | `/api/intro/:id/meet` | `{attendeeId, action}` | `IntroState` |
+| POST | `/api/intro/:id/meet` | `{attendeeId, action}` with action `request`, `accept`, `decline` or `arrive` | `IntroState`. 409 if not connected, not both onsite, nothing to answer, or arrive before accept; 400 for an unknown action. |
 | POST | `/api/conversation/:id/end` | `{attendeeId}` | `{ok}` |
-| GET | `/api/stream?attendee=<id>` | | Server-sent events of `ServerPush`: that attendee, the event, and that attendee's intros |
+| GET | `/api/stream?attendee=<id>` | | Server-sent events of `ServerPush`: that attendee, the event, and that attendee's intros. Every intro change (decide, chat, meet now, expiry) goes to every open stream of both parties, redacted for that viewer. |
+| GET | `/api/health` | | `{store, transport, llm, llmStats, speed, meetNowTtlMs, ...}` |
 | GET | `/api/ws/:kind/:id` | | Terse WebSocket grant `{websocketUrl}` when `STORE=terse` (optional, live actor sockets) |
 
 The web app uses `/api/stream` (SSE) for live updates in both store modes. Actor sockets are an upgrade, not a dependency.
@@ -72,6 +73,14 @@ The web app uses `/api/stream` (SSE) for live updates in both store modes. Actor
 ## Env (`.env` at repo root, never committed)
 
 `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` (LLM; without one, agents use a scripted fallback so the flow still runs), `RELAY_WORKSPACE_KEY` (`rk_live_...`), `TERSE_ACTOR_URL` + `TERSE_API_KEY` (hosted; local dev uses `http://127.0.0.1:7100`), `STORE`, `DEMO_MODE=1`, `PORT=3001`.
+
+Types added at 13:30: `PublicProfile.attendance?: "onsite" | "agent-only"` (always set by the server), `MeetNow` gains `status: "requested" | "accepted" | "declined" | "expired"`, `expiresAt`, `respondedBy` and `arrivedBy[]` (`accepted` stays, true iff status is `accepted`), `EVENT_NAME = "Haunted Hacks: Real-Time AI Edition"`.
+
+LLM: each turn waits at most `LLM_TIMEOUT_MS` (6s); a failed or slow call uses the scripted line for that turn, and after 3 failures in a row the LLM is skipped for 30s.
+
+## Run and test
+
+`bun run dev` starts actors (:7100), server (:3001) and web (:5173), reusing any that are already running; it also starts a local Relay engine when `RELAY_BASE_URL` points at localhost. `bun run test:e2e` runs `scripts/e2e.ts` against `BASE_URL` (default `http://localhost:3001`): signup, conversations, match, double opt-in privacy, undo, chat, Meet now, End conversation. Start the server with `MEET_NOW_TTL_MS=8000` to cover expiry too.
 
 ## Seed
 

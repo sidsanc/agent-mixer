@@ -1,12 +1,13 @@
 // Agent Mixer server: REST API + SSE on :3001, agent conversation loop, Relay bridge, seed loader.
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import type { Choice, Profile, Role, ServerPush } from "@agent-mixer/shared"
-import { ROLES } from "@agent-mixer/shared"
+import type { Attendance, Choice, MeetAction, Profile, Role, ServerPush } from "@agent-mixer/shared"
+import { EVENT_NAME, ROLES } from "@agent-mixer/shared"
 import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
-import { llmProvider } from "./agents/llm"
+import { llmProvider, llmStats } from "./agents/llm"
+import { meetNowTtl } from "./store/types"
 import { speed } from "./agents/engine"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
@@ -26,19 +27,27 @@ loadEnv()
 process.env.DEMO_MODE ??= "1"
 
 // ---------- store ----------
+// STORE=terse is the default; STORE=memory forces the in-process store. If the Terse actors are not
+// reachable at startup we fall back to memory, loudly, so the demo still runs.
+const TERSE_PROBE_MS = Number(process.env.TERSE_PROBE_MS ?? 4000)
+
+function loud(msg: string, e?: unknown) {
+  const bar = "!".repeat(78)
+  console.error(`\n${bar}\n!!! ${msg}\n!!! ${e instanceof Error ? e.message : e ?? ""}\n${bar}\n`)
+}
+
 async function makeStore(): Promise<{ store: Store; kind: string }> {
-  if ((process.env.STORE ?? "memory") === "terse") {
+  if ((process.env.STORE || "terse") !== "memory") {
     try {
-      const mod: any = await import("./store/terse")
-      const store: Store =
-        typeof mod.createTerseStore === "function" ? await mod.createTerseStore()
-        : typeof mod.TerseStore === "function" ? new mod.TerseStore()
-        : typeof mod.default === "function" ? await mod.default()
-        : mod.default ?? mod.store
-      if (!store) throw new Error("store/terse.ts exports no store")
-      return { store, kind: "terse" }
+      const mod = await import("./store/terse")
+      // Probe with a real read so a dead :7100 (or bad hosted URL/key) is caught before we commit to it.
+      await Promise.race([
+        mod.probeTerse(),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`no answer from Terse in ${TERSE_PROBE_MS}ms`)), TERSE_PROBE_MS)),
+      ])
+      return { store: new mod.TerseStore(), kind: "terse" }
     } catch (e) {
-      console.error("\n!!! [store] STORE=terse failed, FALLING BACK TO MEMORY STORE:", e, "\n")
+      loud(`[store] Terse actors unreachable (${process.env.TERSE_ACTOR_URL || "http://127.0.0.1:7100"}): FALLING BACK TO MEMORY STORE`, e)
     }
   }
   return { store: new MemoryStore(), kind: "memory" }
@@ -63,9 +72,18 @@ function loadSeed(): Profile[] {
   return []
 }
 const seed = loadSeed()
+// Idempotent on restart: Attendee.create overwrites the profile and Event.join upserts by id,
+// so re-seeding never duplicates roster entries.
 for (const p of seed) {
-  await store.createAttendee(p)
-  await store.joinEvent(p)
+  try {
+    await store.createAttendee(p)
+    await store.joinEvent(p)
+  } catch (e) { console.error(`[seed] ${p.id} failed`, e) }
+}
+{
+  const roster = (await store.eventView()).roster
+  const dupes = roster.length - new Set(roster.map((r) => r.id)).size
+  console.log(`[seed] roster ${roster.length} (${dupes ? `${dupes} DUPLICATES` : "no duplicates"})`)
 }
 
 // ---------- relay ----------
@@ -97,7 +115,10 @@ store.onChange((push) => {
   for (const s of subs) {
     if (push.type === "event") s.send(push)
     else if (push.type === "attendee" && push.id === s.attendee) s.send(push)
-    else if (push.type === "intro" && s.attendee && (push.state.a === s.attendee || push.state.b === s.attendee)) s.send(push)
+    // Intro changes (decide, chat, meet now) go to every stream of BOTH parties, redacted for that viewer.
+    else if (push.type === "intro" && s.attendee && (push.state.a === s.attendee || push.state.b === s.attendee)) {
+      s.send({ type: "intro", state: redactIntro(push.state, s.attendee) })
+    }
   }
 })
 
@@ -120,7 +141,7 @@ function sse(attendee: string | null, req: Request) {
         sub.send({ type: "attendee", id: attendee, view })
         for (const m of view.matches) {
           const s = await store.intro(m.introId)
-          if (s) sub.send({ type: "intro", state: s })
+          if (s) sub.send({ type: "intro", state: redactIntro(s, attendee) })
         }
       }
     },
@@ -157,13 +178,16 @@ async function signup(req: Request) {
   const role = String(b.role ?? "other") as Role
   if (!name || !goal) throw new HttpError(400, "name and goal are required")
   if (!roleIds.has(role)) throw new HttpError(400, `role must be one of ${[...roleIds].join(", ")}`)
+  const attendance = String(b.attendance ?? "onsite") as Attendance
+  if (attendance !== "onsite" && attendance !== "agent-only") throw new HttpError(400, "attendance must be onsite or agent-only")
   const id = `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`
   const p: Profile = {
     id, name, agentName: `${name.split(" ")[0]}'s agent`, role,
     bio: String(b.bio ?? "").trim().slice(0, 200),
     shareableGoal: goal,
+    attendance,
     privateIntent: String(b.privateIntent ?? "").trim().slice(0, 500),
-    contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at Haunted Hacks`,
+    contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at ${EVENT_NAME}`,
   }
   await store.createAttendee(p)
   if ("ensureAgent" in engine.transport && engine.transport.ensureAgent) {
@@ -195,11 +219,14 @@ Bun.serve({
     try {
       let r: RegExpMatchArray | null
       if (req.method === "GET" && path === "/api/health") {
-        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), speed: speed() })
+        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), llmStats, speed: speed(), meetNowTtlMs: meetNowTtl() })
       }
       if (req.method === "GET" && path === "/api/observer") return json({ url: relayRef?.observerUrl ?? null })
       if (req.method === "POST" && path === "/api/signup") return await signup(req)
-      if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) return json(await store.attendeeView(r[1]))
+      if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) {
+        const view = await store.attendeeView(r[1])
+        return view.profile ? json(view) : json({ error: "attendee not found" }, 404)
+      }
       if (req.method === "GET" && path === "/api/event") return json(await store.eventView())
       if (req.method === "GET" && path === "/api/stream") return sse(url.searchParams.get("attendee"), req)
       if (req.method === "GET" && (r = m(/^\/api\/intro\/([^/]+)$/))) {
@@ -218,7 +245,8 @@ Bun.serve({
       }
       if (req.method === "POST" && (r = m(/^\/api\/intro\/([^/]+)\/meet$/))) {
         const b = await body(req)
-        const action = b.action === "accept" ? "accept" : "request"
+        const action = String(b.action ?? "request") as MeetAction
+        if (!["request", "accept", "decline", "arrive"].includes(action)) throw new HttpError(400, "action must be request, accept, decline or arrive")
         return json(redactIntro(await store.meet(r[1], String(b.attendeeId), action), String(b.attendeeId)))
       }
       if (req.method === "POST" && (r = m(/^\/api\/conversation\/([^/]+)\/end$/))) {

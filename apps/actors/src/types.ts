@@ -24,7 +24,10 @@ export interface PublicProfile {
   shareableGoal: string // said only inside 1:1 agent conversations
   seeded?: boolean
   plantedFor?: Role[] // demo seeds: roles this agent is a strong partner for (boosts the Router score)
+  attendance?: Attendance // public; the server always sets it (default "onsite"). Meet now needs both onsite.
 }
+
+export type Attendance = "onsite" | "agent-only"
 
 /** Full profile. privateIntent and contact never leave the server/agent boundary. */
 export interface Profile extends PublicProfile {
@@ -75,10 +78,20 @@ export interface MeetingCard {
   contacts: Record<string, string> // attendee id -> contact, released only on mutual connect
 }
 
+export type MeetNowStatus = "requested" | "accepted" | "declined" | "expired"
+export type MeetAction = "request" | "accept" | "decline" | "arrive"
+export const EVENT_NAME = "Haunted Hacks: Real-Time AI Edition"
+export const MEET_NOW_TTL_MS = 5 * 60_000 // an unanswered Meet now request expires back to chat
+
 export interface MeetNow {
   requestedBy: string
-  at: number
-  accepted: boolean
+  at: number // when it was requested
+  accepted: boolean // true iff status === "accepted" (kept for older clients)
+  // The fields below are always set by the server; optional only so older client code still compiles.
+  status?: MeetNowStatus
+  expiresAt?: number // a "requested" request turns "expired" after this
+  respondedBy?: string // who accepted or declined
+  arrivedBy?: string[] // attendee ids who tapped "I'm here" (after accepted)
 }
 
 /** Full Intro actor state (both sides subscribe to it). */

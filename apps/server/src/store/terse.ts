@@ -6,13 +6,13 @@
 // Live updates: after every mutating call we read the affected views and emit ServerPush. Event pairing
 // happens inside the actor's alarm, so we also poll the event view (cheap read) and emit on change.
 import {
-  DEMO, EVENT_ID, REAL, type AttendeeView, type Choice, type Conversation, type ConversationStatus,
+  DEMO, EVENT_ID, EVENT_NAME, REAL, type MeetAction, type AttendeeView, type Choice, type Conversation, type ConversationStatus,
   type EventView, type IntroState, type Line, type MatchSummary, type Profile, type PublicProfile,
   type ServerPush,
 } from "@agent-mixer/shared"
 import { actors, ActorProxy, type ActorAuthorization } from "../generated/index.js"
 import { HttpError } from "./memory"
-import { MEETING_POINTS, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, toPublic, type Store } from "./types"
 
 const EVENT_POLL_MS = Number(process.env.TERSE_EVENT_POLL_MS ?? 1500)
 
@@ -20,11 +20,18 @@ const att = (id: string) => actors.Attendee.get(id)
 const ev = () => actors.Event.get(EVENT_ID)
 const intro = (id: string) => actors.Intro.get(id)
 
+/** Cheap real read used at startup to decide between Terse and the memory fallback. */
+export async function probeTerse(): Promise<void> {
+  await ev().view()
+}
+
 /** Map actor errors (thrown as ActorInvocationError with our message) to HTTP errors the server understands. */
 function mapError(e: unknown): never {
   const msg = e instanceof Error ? e.message : String(e)
   if (/intro not found/.test(msg)) throw new HttpError(404, "intro not found")
   if (/not part of this/.test(msg)) throw new HttpError(403, "not part of this intro")
+  if (/needs both people onsite|no meet now request|already accepted|arrive needs/.test(msg)) throw new HttpError(409, msg.replace(/^.*?(meet now needs|no meet now|meet now was|arrive needs)/, "$1"))
+  if (/unknown meet action/.test(msg)) throw new HttpError(400, "unknown meet action")
   if (/opens after/.test(msg)) throw new HttpError(409, msg.includes("chat") ? "chat opens after both connect" : "meet opens after both connect")
   if (/empty message/.test(msg)) throw new HttpError(400, "empty message")
   throw e
@@ -39,7 +46,7 @@ export class TerseStore implements Store {
   constructor() {
     const consts = process.env.DEMO_MODE === "0" ? REAL : DEMO
     this.ready = ev()
-      .configure({ maxParallel: consts.maxParallel, tickMs: 3000, seedChatter: process.env.SEED_CHATTER !== "0" })
+      .configure({ name: EVENT_NAME, maxParallel: consts.maxParallel, tickMs: 3000, seedChatter: process.env.SEED_CHATTER !== "0" })
       .catch((e) => console.error("[terse] Event.configure failed", e))
   }
 
@@ -157,7 +164,7 @@ export class TerseStore implements Store {
   }
 
   async intro(id: string): Promise<IntroState | null> {
-    return (await intro(id).get()) as IntroState | null
+    return (await intro(id).checkMeetNow()) as IntroState | null // also applies Meet now expiry
   }
 
   async decide(id: string, attendeeId: string, c: Choice): Promise<IntroState> {
@@ -180,10 +187,19 @@ export class TerseStore implements Store {
     return s
   }
 
-  async meet(id: string, attendeeId: string, action: "request" | "accept"): Promise<IntroState> {
+  async meet(id: string, attendeeId: string, action: MeetAction): Promise<IntroState> {
     let s: IntroState
-    try { s = (await intro(id).meet(attendeeId, action)) as IntroState } catch (e) { mapError(e) }
+    const ttl = meetNowTtl()
+    try { s = (await intro(id).meet(attendeeId, action, ttl)) as IntroState } catch (e) { mapError(e) }
     this.emitIntro(s)
+    // The actor's alarm expires the request durably; this timer only pushes the change to phones.
+    if (s.meetNow?.status === "requested" && s.meetNow.requestedBy === attendeeId) {
+      const at = s.meetNow.at
+      setTimeout(async () => {
+        const cur = (await intro(id).checkMeetNow().catch(() => null)) as IntroState | null
+        if (cur?.meetNow?.status === "expired" && cur.meetNow.at === at) this.emitIntro(cur)
+      }, ttl + 250)
+    }
     return s
   }
 }

@@ -1,6 +1,6 @@
 // What one agent says and decides. Prompts see: own public profile + own shareable goal,
 // own private intent (decisions only, never revealed), the other's PUBLIC profile, and the transcript.
-import { mutualScore, type Line, type Profile, type PublicProfile, type Role } from "@agent-mixer/shared"
+import { EVENT_NAME, mutualScore, type Line, type Profile, type PublicProfile, type Role } from "@agent-mixer/shared"
 import { complete, parseJson } from "./llm"
 
 const ROLE_WORD: Record<Role, string> = {
@@ -19,7 +19,7 @@ function transcriptBlock(lines: Line[], me: Profile, other: PublicProfile) {
 
 function systemPrompt(me: Profile, other: PublicProfile) {
   return [
-    `You are ${me.agentName}, an AI agent representing ${me.name} at Haunted Hacks, a live networking event.`,
+    `You are ${me.agentName}, an AI agent representing ${me.name} at ${EVENT_NAME}, a live networking event.`,
     `You are in a short one-to-one chat with ${other.agentName}, who represents ${other.name}.`,
     ``,
     `YOUR PERSON (public, you may share):`,

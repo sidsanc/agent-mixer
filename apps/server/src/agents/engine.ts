@@ -94,6 +94,8 @@ export class Engine {
     const st: RunState = { conv, lines: [...conv.lines], seen: new Set(conv.lines.map((l) => l.id)), lastAt: Date.now(), finished: false }
     this.runs.set(conv.id, st)
     const [pa, pb] = await this.profiles(conv)
+    // People who joined before a restart have no Relay identity in this process yet: register lazily.
+    await Promise.all([this.transport.ensureAgent?.(pa), this.transport.ensureAgent?.(pb)])
     console.log(`[engine] ${conv.id}: ${pa.name} <-> ${pb.name} via ${this.transport.name}`)
     await this.speak(st, pa, pb)
   }

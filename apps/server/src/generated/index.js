@@ -81,6 +81,7 @@ export const actors = {
                 actorId,
                 [
                     { name: "chat", result: "value" },
+                    { name: "checkMeetNow", result: "value" },
                     { name: "create", result: "value" },
                     { name: "decide", result: "value" },
                     { name: "get", result: "value" },

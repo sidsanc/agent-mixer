@@ -161,7 +161,7 @@ export class RelayTransport implements Transport {
   private async client(id: string): Promise<Client | null> {
     if (this.clients.has(id)) return this.clients.get(id)!
     const c = this.connecting.get(id)
-    if (c) return await Promise.race([c, new Promise<null>((r) => setTimeout(() => r(null), 3000))])
+    if (c) return await Promise.race([c, new Promise<null>((r) => setTimeout(() => r(null), 8000))])
     return null
   }
 
@@ -229,7 +229,9 @@ export class RelayTransport implements Transport {
       if (!c?.token) throw new Error("caller not on Relay")
       // invoke as the proposing attendee's own Relay identity
       const messaging: any = (this.relay as any).messagingForToken(c.token)
+      // The local engine sometimes rejects an invoke while it is still dispatching; retry once.
       await messaging.commands.invoke(ACTION, input as any)
+        .catch(async () => { await new Promise((r) => setTimeout(r, 500)); return messaging.commands.invoke(ACTION, input as any) })
       console.log(`[relay] @${c.name} invoked ${ACTION} for ${input.conversationId}`)
     } catch (e: any) {
       clearTimeout(timer)
