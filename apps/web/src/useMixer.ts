@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { AttendeeView, EventView, IntroState, PublicProfile, ServerPush } from "@agent-mixer/shared"
 import { forcedMock, liveBackend, serverIsUp, type Backend } from "./backend"
 import { mockBackend } from "./mock"
+import { rememberAvatars } from "./components/Avatar"
 
 /** Picks live when /api answers, else mock; keeps checking so it flips to live automatically. */
 export function useBackend(): Backend | null {
@@ -121,6 +122,10 @@ export function useMixer(attendeeId: string | null): MixerState {
       }
     }
   }, [backend, attendeeId, attendee, setIntro])
+
+  rememberAvatars(event?.roster ?? [])
+  rememberAvatars([attendee?.profile, ...(attendee?.matches.map((m) => m.other) ?? [])])
+  for (const it of Object.values(intros)) rememberAvatars(Object.values(it.profiles ?? {}))
 
   const profileOf = useCallback(
     (id: string) => {
