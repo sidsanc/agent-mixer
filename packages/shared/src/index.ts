@@ -20,13 +20,13 @@ export interface PublicProfile {
   bio: string
   shareableGoal: string // said only inside 1:1 agent conversations
   seeded?: boolean
+  plantedFor?: Role[] // demo seeds: roles this agent is a strong partner for (boosts the Router score)
 }
 
 /** Full profile. privateIntent and contact never leave the server/agent boundary. */
 export interface Profile extends PublicProfile {
   privateIntent: string
   contact: string
-  plantedFor?: Role[]
 }
 
 export interface Line {
@@ -134,3 +134,39 @@ export function introId(x: string, y: string): string {
   const [a, b] = [x, y].sort()
   return `i-${a}-${b}`
 }
+
+// ---- Router scoring (docs/architecture/router.md) ----
+// Transparent heuristic. Directional score 0..100; mutual = geometric mean, so one-sided interest is penalized.
+
+const ROLE_FIT: Record<Role, Partial<Record<Role, number>>> = {
+  founder: { investor: 90, engineer: 80, designer: 70, gtm: 70, founder: 45, other: 40 },
+  investor: { founder: 95, engineer: 35, other: 30, designer: 25, gtm: 25, investor: 20 },
+  engineer: { founder: 85, engineer: 50, designer: 45, investor: 30, gtm: 25, other: 35 },
+  designer: { founder: 85, engineer: 55, designer: 40, gtm: 30, investor: 25, other: 35 },
+  gtm: { founder: 85, investor: 35, engineer: 30, designer: 30, gtm: 40, other: 35 },
+  other: { founder: 60, engineer: 45, designer: 45, gtm: 45, investor: 40, other: 45 },
+}
+
+const STOP = new Set("the a an and or to of in for with on at i im my me we our you your is are be looking want meet who that this from".split(" "))
+function words(s: string): Set<string> {
+  return new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2 && !STOP.has(w)))
+}
+
+/** How much `from` wants to talk to `to`. */
+export function directionalScore(from: PublicProfile, to: PublicProfile): number {
+  const role = ROLE_FIT[from.role]?.[to.role] ?? 40
+  const a = words(`${from.shareableGoal} ${from.bio}`)
+  const b = words(`${to.shareableGoal} ${to.bio}`)
+  let overlap = 0
+  for (const w of a) if (b.has(w)) overlap++
+  const text = Math.min(100, overlap * 20)
+  const planted = to.plantedFor?.includes(from.role) || from.plantedFor?.includes(to.role) ? 100 : 0
+  return Math.round(0.45 * role + 0.25 * text + 0.3 * planted)
+}
+
+export function mutualScore(a: PublicProfile, b: PublicProfile): number {
+  return Math.round(Math.sqrt(directionalScore(a, b) * directionalScore(b, a)))
+}
+
+export const MAX_SLOTS = 3
+export const LEASE_MS = 60_000 // demo: a conversation that goes silent frees its slots after this

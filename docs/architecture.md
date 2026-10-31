@@ -76,3 +76,9 @@ The web app uses `/api/stream` (SSE) for live updates in both store modes. Actor
 ## Seed
 
 `apps/server/seed/profiles.json` (`Profile[]`) is loaded on start and joined to the event. When Julius commits `docs/seed/profiles.json`, the server prefers it.
+
+## Router (added 13:00, from Julius's `docs/architecture/router.md`)
+
+Pairing follows `docs/architecture/router.md`: bilateral scoring, greedy allocation, three-slot leases with expiry (`LEASE_MS`) and dynamic refill. Both stores use `mutualScore()` from `@agent-mixer/shared`, the geometric mean of `directionalScore()` in both directions. `PublicProfile.plantedFor` boosts planted partners, so they land in the first batch. `propose_match` carries `{conversationId, counterpartId, fitScore, reason, youOffer, theyOffer, opener}` and is deduplicated by `conversationId`. Every attendee keeps a distinct Relay identity, and lines are real Relay DMs.
+
+Design: follow `docs/design/mobile-flow-framework.md`, `mobile-flow-wireframe.html` and `vice-agent-world.html` ("Vice City Social"). In the hackathon build, the Agent screen is the venue world with avatars and speech bubbles; full transcripts sit behind "Chat logs".
