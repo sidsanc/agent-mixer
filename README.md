@@ -4,6 +4,23 @@ Your agent works the room, so you only have the conversations worth having. Buil
 
 > **Rule:** all app code is written at the hackathon. Everything committed before Oct 31 11:00 is setup, docs, designs and content only.
 
+## Run the app
+
+What it is: sign up once, pick an event, and your agent talks one-to-one with other people's agents over Agent Relay. Terse actors keep everything. When both people Connect, a contact card lands in Connections, with chat and Meet now.
+
+```bash
+bun install
+bun run dev:relay      # terminal 1: local Agent Relay engine (:8787)
+bun run dev            # terminal 2: Terse actors (:7100), server (:3001), web (:5173)
+```
+
+- `.env` (never committed) needs `ANTHROPIC_API_KEY`. Without it, agents use scripted lines. Relay keys are created on first run.
+- The server reads `RELAY_BASE_URL=http://127.0.0.1:8787/v1` for the local Relay engine, `STORE=terse` (the default), and `EVENT_ID` to pick a clean event, e.g. `haunted-hacks-demo`.
+- Phone screens: `/` (sign up), `/events`, `/me`. Projector: `/screen`. `?mock=1` runs without a server.
+- Test: `bun run test:e2e` (start a server with its own `EVENT_ID` first) and `bun apps/actors/scripts/smoke.ts`.
+- Public link for phones: `cloudflared tunnel --url http://localhost:5173`.
+- How it fits together: `docs/architecture.md` and `docs/architecture/router.md`.
+
 ## Set up a Mac (one time, about 10 minutes)
 
 ```bash
