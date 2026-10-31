@@ -263,12 +263,22 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
 
     // Meeting spots for pairs on the big screen: a stable slot per pair, so a new pair
     // never makes the others walk away mid-conversation.
+    // Fill order zig-zags between the two rows so neighbouring pairs (and their bubbles) don't touch.
+    const ORDER = [
+      [0, 0],
+      [1, 2],
+      [0, 2],
+      [1, 0],
+      [0, 1],
+      [1, 3],
+      [0, 3],
+      [1, 1],
+    ]
     const spotFor = (i: number, n: number) => {
       const b = band()
       const cols = 4
       const rows = Math.max(2, Math.ceil(n / cols))
-      const row = Math.floor(i / cols)
-      const col = i % cols
+      const [row, col] = i < ORDER.length ? ORDER[i] : [Math.floor(i / cols), i % cols]
       // Stagger alternate rows so pairs do not stand in a straight line.
       const off = row % 2 ? 0.5 / cols : 0
       const x = W * (b.x0 + 0.06 + ((((col + 0.5) / cols + off) % 1) * (b.x1 - b.x0 - 0.12)))
@@ -343,7 +353,7 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
       }
       const k = H / (variant === "phone" ? 780 : 620)
       if (variant === "screen") {
-        const sep = 44 * k
+        const sep = 34 * k
         const live = new Set(pairs.map(([a, b]) => [a, b].sort().join("|")))
         for (const [a, b] of pairs) {
           if (talking.has(a) || talking.has(b)) continue // one conversation on screen per agent
