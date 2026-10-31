@@ -125,6 +125,8 @@ export class Engine {
     const st = this.runs.get(msg.conversationId)
     if (!st || st.finished || st.seen.has(msg.lineId)) return
     st.seen.add(msg.lineId)
+    // A line still in flight (Relay DM or its fallback timer) when the phone pressed End is dropped.
+    if (await this.store.isStopped(st.conv.id)) return this.stopped(st)
     const line: Line = { id: msg.lineId, from: msg.from, text: msg.text, at: Date.now() }
     st.lines = [...st.lines, line]
     st.lastAt = Date.now()
