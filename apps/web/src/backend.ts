@@ -12,6 +12,8 @@ import type {
 
 export interface SignupBody {
   name: string
+  /** Defaults to "{name}'s agent". */
+  agentName?: string
   role: Role
   goal: string
   bio?: string
@@ -23,10 +25,33 @@ export interface SignupBody {
   avatar?: AvatarId
 }
 
+/** One card on "Events today". Only live events can be joined. */
+export interface EventListing {
+  id: string
+  name: string
+  when: string
+  where: string
+  blurb: string
+  live: boolean
+  joined?: boolean
+}
+
+export const LIVE_EVENT_ID = "haunted-hacks"
+
+/** Shown when the server has no /api/events yet. */
+export const FALLBACK_EVENTS: EventListing[] = [
+  { id: LIVE_EVENT_ID, name: "Haunted Hacks: Real-Time AI Edition", when: "Today · 11:00 – 20:00", where: "Y Combinator, San Francisco", blurb: "A Halloween hackathon for real-time AI. Your agent works the room while you build.", live: true },
+  { id: "founder-mixer", name: "Founders & Funders After Dark", when: "Tonight · 21:00", where: "Mission District, SF", blurb: "Pre-seed founders meet the angels who write first checks.", live: false },
+  { id: "design-salon", name: "Design Engineers Salon", when: "Tomorrow · 18:30", where: "SoMa, SF", blurb: "People who design in code, comparing notes on agent UX.", live: false },
+  { id: "voice-ai-night", name: "Voice AI Demo Night", when: "Sun · 19:00", where: "Palo Alto", blurb: "Ten live voice agent demos, then drinks.", live: false },
+]
+
 export interface Backend {
   mode: "live" | "mock"
   signup(b: SignupBody): Promise<{ attendeeId: string }>
   attendee(id: string): Promise<AttendeeView>
+  events(attendeeId: string | null): Promise<EventListing[]>
+  join(eventId: string, attendeeId: string, attendance: Attendance): Promise<{ ok: boolean }>
   event(): Promise<EventView>
   intro(id: string, as: string): Promise<IntroState>
   decide(id: string, attendeeId: string, choice: Choice): Promise<IntroState>
@@ -56,6 +81,24 @@ export const liveBackend: Backend = {
   mode: "live",
   signup: (b) => post("/api/signup", b),
   attendee: (id) => json(`/api/attendee/${enc(id)}`),
+  async events(attendeeId) {
+    try {
+      const list = await json<EventListing[] | { events: EventListing[] }>(`/api/events${attendeeId ? `?attendee=${enc(attendeeId)}` : ""}`)
+      const arr = Array.isArray(list) ? list : list.events
+      return arr?.length ? arr : FALLBACK_EVENTS
+    } catch {
+      return FALLBACK_EVENTS
+    }
+  },
+  async join(eventId, attendeeId, attendance) {
+    try {
+      return await post<{ ok: boolean }>(`/api/events/${enc(eventId)}/join`, { attendeeId, attendance })
+    } catch (e) {
+      // Older server: sign-up already joined the one event.
+      if (String(e).includes("404")) return { ok: true }
+      throw e
+    }
+  },
   event: () => json("/api/event"),
   intro: (id, as) => json(`/api/intro/${enc(id)}?as=${enc(as)}`),
   decide: (id, attendeeId, choice) => post(`/api/intro/${enc(id)}/decide`, { attendeeId, choice }),
@@ -150,6 +193,32 @@ export const myId = {
   clear() {
     try {
       localStorage.removeItem(KEY)
+    } catch {
+      /* ignore */
+    }
+  },
+}
+
+/** Events this phone has joined, and how (onsite / agent-only). */
+const JKEY = "am.joined"
+export const joined = {
+  all(): Record<string, Attendance> {
+    try {
+      return JSON.parse(localStorage.getItem(JKEY) ?? "{}")
+    } catch {
+      return {}
+    }
+  },
+  set(eventId: string, a: Attendance) {
+    try {
+      localStorage.setItem(JKEY, JSON.stringify({ ...joined.all(), [eventId]: a }))
+    } catch {
+      /* ignore */
+    }
+  },
+  clear() {
+    try {
+      localStorage.removeItem(JKEY)
     } catch {
       /* ignore */
     }
