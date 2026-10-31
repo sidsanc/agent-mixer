@@ -1,7 +1,7 @@
 // Conversation loop. Each line travels through a Transport (Agent Relay DM, or direct in-process fallback);
 // the listener's turn is triggered when the line is delivered to it.
 import {
-  DEMO, REAL, introId, type Conversation, type IntroState, type Line, type MatchSummary, type Profile,
+  DEMO, REAL, introId as introIdOf, type Conversation, type IntroState, type Line, type MatchSummary, type Profile,
 } from "@agent-mixer/shared"
 import type { Store } from "../store/types"
 import { toPublic } from "../store/types"
@@ -41,16 +41,22 @@ export interface Transport {
 
 interface RunState {
   conv: Conversation
+  /** Lines from this pair's previous conversation: a follow-up continues from where they left off. */
+  prior: Line[]
   lines: Line[]
   seen: Set<string>
   lastAt: number
   finished: boolean
 }
 
+/** Demo conversations run ~8 lines (~4s each) so the room stays busy; REAL keeps its own length. */
+const DEMO_LINES = 8
+
 export function speed() {
-  const c = process.env.DEMO_MODE === "0" ? REAL : DEMO
+  const demo = process.env.DEMO_MODE !== "0"
+  const c = demo ? DEMO : REAL
   return {
-    lines: Number(process.env.LINES_PER_CONVERSATION ?? c.linesPerConversation),
+    lines: Number(process.env.LINES_PER_CONVERSATION ?? (demo ? DEMO_LINES : c.linesPerConversation)),
     msPerLine: Number(process.env.MS_PER_LINE ?? c.msPerLine),
   }
 }
@@ -91,20 +97,31 @@ export class Engine {
 
   private async begin(conv: Conversation) {
     if (this.runs.has(conv.id)) return
-    const st: RunState = { conv, lines: [...conv.lines], seen: new Set(conv.lines.map((l) => l.id)), lastAt: Date.now(), finished: false }
+    const st: RunState = { conv, prior: [], lines: [...conv.lines], seen: new Set(conv.lines.map((l) => l.id)), lastAt: Date.now(), finished: false }
     this.runs.set(conv.id, st)
     const [pa, pb] = await this.profiles(conv)
+    st.prior = await this.priorLines(conv).catch(() => [])
     // People who joined before a restart have no Relay identity in this process yet: register lazily.
     await Promise.all([this.transport.ensureAgent?.(pa), this.transport.ensureAgent?.(pb)])
     console.log(`[engine] ${conv.id}: ${pa.name} <-> ${pb.name} via ${this.transport.name}`)
     await this.speak(st, pa, pb)
   }
 
+  /** The latest earlier conversation between the same two people (ended), last few lines only. */
+  private async priorLines(conv: Conversation): Promise<Line[]> {
+    const view = await this.store.attendeeView(conv.a)
+    const prev = view.conversations
+      .filter((c) => c.id !== conv.id && c.status !== "active" && ((c.a === conv.a && c.b === conv.b) || (c.a === conv.b && c.b === conv.a)))
+      .sort((x, y) => y.startedAt - x.startedAt)[0]
+    return prev ? prev.lines.slice(-6) : []
+  }
+
   /** `me` produces the next line and sends it to `other`. */
   private async speak(st: RunState, me: Profile, other: Profile) {
     const { lines: total, msPerLine } = speed()
     const startedAt = Date.now()
-    const text = await nextLine(me, toPublic(other), st.lines, st.lines.length, total)
+    // A follow-up sees the end of their last conversation, so it picks up where they left off.
+    const text = await nextLine(me, toPublic(other), [...st.prior, ...st.lines], st.lines.length, total)
     // keep a readable rhythm: about msPerLine between lines, generation time included
     await sleep(st.lines.length === 0 ? 500 : msPerLine - (Date.now() - startedAt))
     if (st.finished || (await this.store.isStopped(st.conv.id))) return this.stopped(st)
@@ -145,6 +162,11 @@ export class Engine {
 
   private async finish(st: RunState, pa: Profile, pb: Profile) {
     st.finished = true
+    // One intro per pair: a follow-up between people who already have one just ends.
+    if (await this.store.intro(introIdOf(st.conv.a, st.conv.b)).catch(() => null)) {
+      await this.store.endConversation(st.conv.id, st.conv.a, st.conv.b, "ended")
+      return
+    }
     const planted = !!(pa.plantedFor?.includes(pb.role) || pb.plantedFor?.includes(pa.role))
     const [da, db] = await Promise.all([
       decideFit(pa, toPublic(pb), st.lines, planted),
@@ -170,7 +192,7 @@ export class Engine {
     if (!((input.from === a && input.counterpartId === b) || (input.from === b && input.counterpartId === a))) {
       throw new Error(`propose_match: ${input.from}/${input.counterpartId} are not the parties of ${input.conversationId}`)
     }
-    const id = introId(a, b)
+    const id = introIdOf(a, b)
     if (this.proposed.has(input.conversationId)) return { introId: id, duplicate: true } // idempotency key
     this.proposed.add(input.conversationId)
     const [pa, pb] = await this.profiles(run.conv)

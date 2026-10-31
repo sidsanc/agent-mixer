@@ -183,7 +183,6 @@ function LogPanel({
   onOpenMatches: () => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
-  const [ending, setEnding] = useState(false)
   const active = c.status === "active"
   const last = c.lines[c.lines.length - 1]
   const nextSpeaker = last ? (last.from === c.a ? c.b : c.a) : c.a
@@ -192,18 +191,6 @@ function LogPanel({
     const el = scroller.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
   }, [c.lines.length])
-
-  async function end() {
-    if (!mx.backend) return
-    setEnding(true)
-    try {
-      await mx.backend.endConversation(c.id, me)
-      mx.refresh()
-    } catch (e) {
-      console.error(e)
-      setEnding(false)
-    }
-  }
 
   return (
     <>
@@ -248,11 +235,7 @@ function LogPanel({
           {c.status === "stopped" && <p className="log-note">You ended this conversation.</p>}
         </div>
       </div>
-      {active ? (
-        <button className="danger-btn" onClick={end} disabled={ending}>
-          {ending ? "Ending…" : "End this conversation"}
-        </button>
-      ) : c.status === "matched" ? (
+      {c.status === "matched" ? (
         <button className="cta cyan" onClick={onOpenMatches}>
           Review match
         </button>

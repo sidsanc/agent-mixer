@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { EVENT_NAME } from "@agent-mixer/shared"
 import { Avatar, ROLE_LABEL } from "../components/Avatar"
 import type { MixerState } from "../useMixer"
 import { MeetPanel, attendanceOf, bothOnsite, effective } from "./MatchesTab"
@@ -22,29 +23,57 @@ export function ChatsTab({
     return <Thread mx={mx} me={me} introId={open} onBack={() => setOpen(null)} />
   }
 
+  const eventName = mx.event?.name || EVENT_NAME
   return (
     <div className="page">
-      <h1 className="page-title">Chats</h1>
+      <h1 className="page-title">Connections</h1>
       {connected.length === 0 ? (
         <div className="empty">
-          <strong>No human chats yet</strong>
-          <p>A private chat opens only after both people choose Connect.</p>
+          <strong>No connections yet</strong>
+          <p>When you and someone both choose Connect, their contact card lands here.</p>
         </div>
       ) : (
-        <div className="rows">
+        <div className="contact-cards">
           {connected.map((m) => {
             const it = mx.intros[m.introId]
+            const o = it?.profiles?.[m.other.id] ?? m.other
             const last = it?.chat[it.chat.length - 1]
             const ask = it?.meetNow?.status === "requested" && it.meetNow.requestedBy !== me
+            const contact = it?.meeting?.contacts?.[o.id]
+            const opener = (it?.meeting?.opener ?? it?.opener ?? m.opener ?? "").replace(/^“|”$/g, "")
+            const here = attendanceOf(o.id, it, mx) === "onsite"
             return (
-              <button key={m.introId} className="row-card" onClick={() => setOpen(m.introId)}>
-                <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={48} />
-                <span className="row-text">
-                  <strong>{m.other.name}</strong>
-                  <small>{ask ? `${first(m.other.name)} wants to meet now` : last ? `${last.from === me ? "You: " : ""}${last.text}` : "Here now · say hi"}</small>
-                </span>
-                {(ask || (last && last.from !== me)) && <span className="unread" />}
-                <span className="chev">›</span>
+              <button key={m.introId} className="contact-card" onClick={() => setOpen(m.introId)}>
+                <div className="cc-head">
+                  <Avatar id={o.id} role={o.role} avatar={o.avatar} size={56} />
+                  <span className="row-text">
+                    <strong>{o.name}</strong>
+                    <small>
+                      {ROLE_LABEL[o.role]} · {here ? "Onsite" : "Agent only"}
+                    </small>
+                  </span>
+                  {(ask || (last && last.from !== me)) && <span className="unread" />}
+                  <span className="chev">›</span>
+                </div>
+                <dl className="cc-facts">
+                  <div>
+                    <dt>Contact · how to spot</dt>
+                    <dd>{contact || "Not shared yet · ask in chat"}</dd>
+                  </div>
+                  {opener && (
+                    <div>
+                      <dt>Opener</dt>
+                      <dd>“{opener}”</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>Met at</dt>
+                    <dd>{eventName}</dd>
+                  </div>
+                </dl>
+                <p className="cc-last">
+                  {ask ? `${first(o.name)} wants to meet now` : last ? `${last.from === me ? "You: " : ""}${last.text}` : "Open chat · say hi"}
+                </p>
               </button>
             )
           })}
@@ -108,7 +137,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
   return (
     <div className="page thread">
       <div className="topline">
-        <button className="back" onClick={onBack} aria-label="Back to chats">
+        <button className="back" onClick={onBack} aria-label="Back to connections">
           ←
         </button>
         <Avatar id={m.other.id} role={m.other.role} avatar={m.other.avatar} size={34} />
@@ -118,9 +147,11 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
             {theirAttendance === "onsite" ? "Here now" : "Agent only"} · {ROLE_LABEL[m.other.role]}
           </small>
         </span>
-        <button className={`pill-btn ${mn?.status === "accepted" ? "cyan" : canMeet ? "pink" : "yellow"}`} onClick={() => setShowMeet((x) => !x)}>
-          {canMeet ? "Meet now" : "Meet"}
-        </button>
+        {canMeet && (
+          <button className={`pill-btn ${mn?.status === "accepted" ? "cyan" : "pink"}`} onClick={() => setShowMeet((x) => !x)}>
+            Meet now
+          </button>
+        )}
       </div>
       <div className="presence-line">
         {canMeet ? "You're both at Haunted Hacks · Meet now is available" : "One of you joined agent-only · chat stays open"}
@@ -135,7 +166,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
         </div>
       )}
 
-      {showMeet && <MeetPanel m={m} it={it} me={me} mx={mx} />}
+      {showMeet && canMeet && <MeetPanel m={m} it={it} me={me} mx={mx} />}
 
       {!it && <p className="note">Loading your chat…</p>}
 

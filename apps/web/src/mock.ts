@@ -17,6 +17,7 @@ import {
   type ServerPush,
 } from "@agent-mixer/shared"
 import type { Backend, SignupBody } from "./backend"
+import { FALLBACK_EVENTS, joined } from "./backend"
 
 const SEEDS: PublicProfile[] = [
   p("maya", "Maya Chen", "founder", "Building a real-time voice pipeline for support teams.", "Meet an investor who gets real-time voice infra"),
@@ -113,7 +114,7 @@ class MockEngine {
     const prof: PublicProfile = {
       id,
       name: b.name,
-      agentName: `${b.name.split(" ")[0]}'s agent`,
+      agentName: b.agentName?.trim() || `${b.name.split(" ")[0]}'s agent`,
       role: b.role,
       bio: b.bio ?? "",
       shareableGoal: b.goal,
@@ -465,6 +466,21 @@ export const mockBackend: Backend = {
   mode: "mock",
   signup: (b) => later(() => ({ attendeeId: engine.signup(b) }), 400),
   attendee: (id) => later(() => engine.attendeeView(id)),
+  events: (id) => later(() => FALLBACK_EVENTS.map((e) => ({ ...e, joined: e.live && !!id && !!joined.all()[e.id] }))),
+  join: (_eventId, id, attendance) =>
+    later(() => {
+      const p = engine.profiles.get(id)
+      if (p) {
+        p.attendance = attendance
+        try {
+          localStorage.setItem("am.mockProfile", JSON.stringify(p))
+        } catch {
+          /* ignore */
+        }
+      }
+      engine.emitEvent()
+      return { ok: true }
+    }),
   event: () => later(() => engine.eventView()),
   intro: (id, as) => later(() => engine.introView(id, as)),
   decide: (id, a, c) => later(() => engine.decide(id, a, c)),

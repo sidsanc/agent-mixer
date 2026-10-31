@@ -136,7 +136,9 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
 
   @Persisted leases: Record<string, number> = {} // conversation id -> lease expiry (ms); renewed by each line
   @Persisted pending: Conversation[] = []
-  @Persisted pairsSeen: string[] = [] // "x|y" sorted, no repeat pair ever
+  @Persisted pairsSeen: string[] = [] // "x|y" sorted: pairs that have talked at least once
+  @Persisted pairEndedAt: Record<string, number> = {} // "x|y" -> when their last conversation ended
+  @Persisted cooldownMs = 90_000 // a pair may talk again (follow-up) this long after their last conversation ended
   @Persisted talkCount: Record<string, number> = {} // conversations started per attendee
   @Persisted counter = 0
   @Persisted stopped: string[] = []
@@ -147,7 +149,8 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
   @Persisted tickMs = 3000
   @Persisted leaseMs = LEASE_MS // a silent or crashed conversation frees both slots after this
 
-  async configure(opts: { maxParallel?: number; tickMs?: number; leaseMs?: number; name?: string; seedChatter?: boolean }): Promise<void> {
+  async configure(opts: { maxParallel?: number; tickMs?: number; leaseMs?: number; name?: string; seedChatter?: boolean; cooldownMs?: number }): Promise<void> {
+    if (typeof opts.cooldownMs === "number" && opts.cooldownMs >= 0) this.cooldownMs = opts.cooldownMs
     if (typeof opts.seedChatter === "boolean") this.seedChatter = opts.seedChatter
     if (opts.maxParallel && opts.maxParallel > 0) this.maxParallel = opts.maxParallel
     if (opts.tickMs && opts.tickMs >= 250) this.tickMs = opts.tickMs
@@ -195,6 +198,8 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
   }
 
   async endConversation(conversationId: string, status: ConversationStatus, introId?: string): Promise<void> {
+    const row = [...this.active, ...this.pending].find(x => x.id === conversationId)
+    if (row) this.pairEndedAt = { ...this.pairEndedAt, [pairKey(row.a, row.b)]: Date.now() }
     this.active = this.active.filter(x => x.id !== conversationId)
     this.pending = this.pending.filter(x => x.id !== conversationId)
     if (conversationId in this.leases) this.leases = dropKey(this.leases, conversationId)
@@ -207,6 +212,7 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
     const row = [...this.active, ...this.pending].find(x => x.id === conversationId)
     if (!row) return null
     if (row.a !== by && row.b !== by) throw new Error("not part of this conversation")
+    this.pairEndedAt = { ...this.pairEndedAt, [pairKey(row.a, row.b)]: Date.now() }
     if (!this.stopped.includes(conversationId)) this.stopped = [...this.stopped, conversationId].slice(-STOPPED_CAP)
     this.active = this.active.filter(x => x.id !== conversationId)
     this.pending = this.pending.filter(x => x.id !== conversationId)
@@ -239,6 +245,9 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
     const now = Date.now()
     const expired = this.active.filter(x => (this.leases[x.id] ?? x.startedAt + this.leaseMs) < now).map(x => x.id)
     if (expired.length) {
+      const ended = { ...this.pairEndedAt }
+      for (const x of this.active) if (expired.includes(x.id)) ended[pairKey(x.a, x.b)] = now
+      this.pairEndedAt = ended
       this.active = this.active.filter(x => !expired.includes(x.id))
       let leases = this.leases
       for (const id of expired) leases = dropKey(leases, id)
@@ -259,7 +268,8 @@ export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "
   async onAlarm(): Promise<void> {
     await this.tick()
     // Keep ticking while anything is in flight or more pairs are possible; join/end re-arm otherwise.
-    if (this.active.length || this.pending.length || pairCandidates(pairingStateOf(this), true).length) {
+    // Pairs come back after their cooldown, so a room with two or more people keeps ticking.
+    if (this.active.length || this.pending.length || this.roster.length >= 2) {
       this.alarm.set(Date.now() + this.tickMs)
     }
   }
@@ -273,6 +283,8 @@ interface PairingState {
   active: ActiveRow[]
   pending: Conversation[]
   pairsSeen: string[]
+  pairEndedAt: Record<string, number>
+  cooldownMs: number
   talkCount: Record<string, number>
   maxParallel: number
   seedChatter: boolean
@@ -281,6 +293,7 @@ interface PairingState {
 function pairingStateOf(ev: PairingState): PairingState {
   return {
     roster: ev.roster, active: ev.active, pending: ev.pending, pairsSeen: ev.pairsSeen,
+    pairEndedAt: ev.pairEndedAt, cooldownMs: ev.cooldownMs,
     talkCount: ev.talkCount, maxParallel: ev.maxParallel,
     seedChatter: ev.seedChatter,
   }
@@ -310,16 +323,29 @@ function humanTiebreak(st: PairingState, x: PublicProfile, y: PublicProfile): nu
 
 interface Candidate { x: PublicProfile; y: PublicProfile; score: number; tie: number; order: number }
 
+/** Pairs talking right now (active or queued): never two conversations at once for the same pair. */
+function livePairs(st: PairingState): Set<string> {
+  return new Set([...st.active, ...st.pending].map(c => pairKey(c.a, c.b)))
+}
+
+/** A pair that already talked may talk again (a follow-up) once its cooldown has passed. */
+function coolingDown(st: PairingState, seen: Set<string>, key: string, now: number): boolean {
+  return seen.has(key) && now - (st.pairEndedAt[key] ?? 0) < st.cooldownMs
+}
+
 function pairCandidates(st: PairingState, ignoreBusy: boolean): Candidate[] {
   const busy = busyMap(st)
   const seen = new Set(st.pairsSeen)
+  const live = livePairs(st)
+  const now = Date.now()
   const out: Candidate[] = []
   const r = st.roster
   for (let i = 0; i < r.length; i++) {
     for (let j = i + 1; j < r.length; j++) {
       const x = r[i]!
       const y = r[j]!
-      if (seen.has(pairKey(x.id, y.id))) continue
+      const k = pairKey(x.id, y.id)
+      if (live.has(k) || coolingDown(st, seen, k, now)) continue
       const bothSeeded = !!x.seeded && !!y.seeded
       if (bothSeeded && !st.seedChatter) continue
       const cap = bothSeeded ? st.maxParallel - 1 : st.maxParallel
@@ -336,6 +362,7 @@ function pairRound(st: PairingState, counter: number): { created: Conversation[]
   if (!cands.length) return null
   const busy = busyMap(st)
   const seen = new Set(st.pairsSeen)
+  const live = livePairs(st)
   const talk = { ...st.talkCount }
   const created: Conversation[] = []
   const now = Date.now()
@@ -343,12 +370,13 @@ function pairRound(st: PairingState, counter: number): { created: Conversation[]
     const cap = x.seeded && y.seeded ? st.maxParallel - 1 : st.maxParallel
     if ((busy.get(x.id) ?? 0) >= cap || (busy.get(y.id) ?? 0) >= cap) continue
     const key = pairKey(x.id, y.id)
-    if (seen.has(key)) continue
+    if (live.has(key)) continue
     // Initiator: the human if exactly one is human; otherwise roster order.
     const [a, b] = !x.seeded || y.seeded ? [x, y] : [y, x]
     counter += 1
     created.push({ id: `c-${a.id}-${b.id}-${counter}`, a: a.id, b: b.id, status: "active", lines: [], startedAt: now })
     seen.add(key)
+    live.add(key)
     busy.set(a.id, (busy.get(a.id) ?? 0) + 1)
     busy.set(b.id, (busy.get(b.id) ?? 0) + 1)
     talk[a.id] = (talk[a.id] ?? 0) + 1

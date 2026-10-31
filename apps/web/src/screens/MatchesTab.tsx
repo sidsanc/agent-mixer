@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import type { Choice, IntroState, IntroStatus, MatchSummary, MeetAction } from "@agent-mixer/shared"
 import { Avatar, ROLE_LABEL } from "../components/Avatar"
+import { joined } from "../backend"
 import type { MixerState } from "../useMixer"
 
 const first = (n: string) => n.split(" ")[0]
@@ -233,7 +234,7 @@ function MatchDetail({
       </div>
       <div className="detail-hero">
         <div className="pair-faces">
-          <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} size={58} agent />
+          <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} avatar={mx.attendee?.profile?.avatar} size={58} />
           <Avatar id={o.id} role={o.role} avatar={o.avatar} size={58} />
         </div>
         <h1>Meet {first(o.name)}</h1>
@@ -352,7 +353,8 @@ export function attendanceOf(id: string, it: IntroState | undefined, mx: MixerSt
 
 /** Meet now needs both people onsite. */
 export function bothOnsite(m: MatchSummary, it: IntroState | undefined, me: string, mx: MixerState) {
-  const mine = mx.attendee?.profile?.attendance ?? attendanceOf(me, it, mx)
+  const local = Object.values(joined.all())[0]
+  const mine = local ?? mx.attendee?.profile?.attendance ?? attendanceOf(me, it, mx)
   const theirs = it?.profiles?.[m.other.id]?.attendance ?? m.other.attendance ?? "onsite"
   return mine === "onsite" && theirs === "onsite"
 }

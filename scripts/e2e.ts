@@ -130,6 +130,22 @@ async function main() {
   const I = si.data.attendeeId as string, F = sf.data.attendeeId as string, T = st.data.attendeeId as string
   const F2 = s2.data.attendeeId as string
 
+  // ---- events today, then join (sign-up alone does not join) ----
+  const evs = await api<any[]>("GET", "/api/events")
+  const live = Array.isArray(evs.data) ? evs.data.filter((e) => e.live) : []
+  must(evs.status === 200 && live.length === 1 && evs.data.length >= 4, "events list: one live event plus coming-soon ones", `${evs.data?.length} events`)
+  const LIVE = live[0].id as string
+  const before = (await api<any[]>("GET", `/api/events?attendee=${I}`)).data.find((e) => e.id === LIVE)
+  report(before?.joined === false, "sign-up alone does not join the event", `joined=${before?.joined}`)
+  const soon = evs.data.find((e) => !e.live)
+  const notLive = await api("POST", `/api/events/${soon.id}/join`, { attendeeId: I, attendance: "onsite" })
+  report(notLive.status === 409, "joining a coming-soon event is 409", `got ${notLive.status}`)
+  const joins = await Promise.all([[I, "onsite"], [F, "onsite"], [T, "onsite"], [F2, "agent-only"]].map(([id, at]) =>
+    api("POST", `/api/events/${LIVE}/join`, { attendeeId: id, attendance: at })))
+  must(joins.every((j) => j.status === 200), "all four join the live event", joins.map((j) => j.status).join(","))
+  const after = (await api<any[]>("GET", `/api/events?attendee=${I}`)).data.find((e) => e.id === LIVE)
+  report(after?.joined === true, "events list shows joined after join")
+
   // Two SSE clients for the investor (every client must get intro updates), one for the founder.
   const sI1 = stream(I), sI2 = stream(I), sF = stream(F)
 

@@ -11,6 +11,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Signup />} />
+        <Route path="/events" element={<Me initialTab="events" />} />
         <Route path="/me" element={<Me />} />
         <Route path="/screen" element={<BigScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

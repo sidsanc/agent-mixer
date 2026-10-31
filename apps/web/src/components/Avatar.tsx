@@ -39,6 +39,12 @@ export const FACE_OF: Record<AvatarId, "man" | "woman" | "robot"> = {
 
 export const faceClass = (id: string, avatar?: AvatarId | null) => (avatar && FACE_OF[avatar] ? `face-p-${FACE_OF[avatar]}` : `face-s${spriteOf(id)}`)
 
+/** Picked characters seen anywhere (roster, intros, matches), so every face follows profile.avatar. */
+export const knownAvatars = new Map<string, AvatarId>()
+export function rememberAvatars(profiles: Iterable<{ id: string; avatar?: AvatarId } | null | undefined>) {
+  for (const p of profiles) if (p?.avatar) knownAvatars.set(p.id, p.avatar)
+}
+
 interface Props {
   id: string
   role: Role
@@ -54,7 +60,7 @@ interface Props {
 export function Avatar({ id, role, avatar, size = 46, agent = false, className = "" }: Props) {
   return (
     <span
-      className={`face ${agent ? "face-agent" : faceClass(id, avatar)} ${className}`}
+      className={`face ${agent ? "face-agent" : faceClass(id, avatar ?? knownAvatars.get(id))} ${className}`}
       style={{ width: size, height: size, boxShadow: `0 0 0 2px ${ROLE_COLOR[role] ?? ROLE_COLOR.other}` }}
       aria-hidden="true"
     />

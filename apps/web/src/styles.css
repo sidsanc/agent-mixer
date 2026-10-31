@@ -2188,3 +2188,171 @@ textarea:focus-visible {
 .toast > .face {
   flex: none;
 }
+
+/* Events today (Partiful-style list) */
+.events-list .home-greeting {
+  margin: 0 0 4px;
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.ev-cards {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.ev-card {
+  border-radius: 20px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.ev-card.live {
+  background: linear-gradient(150deg, #6f2579 0%, #351448 55%, #251033 100%);
+  border-color: var(--pink-2);
+  box-shadow: 0 0 0 1px rgba(255, 61, 158, 0.35), 0 14px 40px rgba(255, 61, 158, 0.18);
+}
+.ev-card.soon {
+  opacity: 0.55;
+}
+.ev-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ev-soon {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.ev-card h3 {
+  font-family: var(--display);
+  font-size: 26px;
+  line-height: 1.05;
+  margin: 12px 0 4px;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.ev-where {
+  margin: 0 0 8px;
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ev-blurb {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.ev-card .cta {
+  width: 100%;
+}
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(20, 6, 28, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--deep);
+  border-top: 2px solid var(--pink);
+  border-radius: 24px 24px 0 0;
+  padding: 22px 16px calc(22px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 12px;
+  animation: sheet-up 0.32s var(--ease);
+}
+.sheet h2 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.05;
+}
+.sheet .hint {
+  margin: 0;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* Connections: contact cards */
+.contact-cards {
+  display: grid;
+  gap: 12px;
+}
+.contact-card {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan);
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+}
+.contact-card:active {
+  transform: scale(0.99);
+}
+.cc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cc-head .row-text {
+  flex: 1;
+  display: grid;
+}
+.cc-head .row-text small {
+  color: var(--muted);
+}
+.cc-facts {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.cc-facts dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.cc-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.cc-last {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

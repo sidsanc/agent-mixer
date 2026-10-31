@@ -5,7 +5,7 @@ import {
   type EventView, type FeedItem, type IntroState, type Line, type MatchSummary, type Profile,
   type PublicProfile, type ServerPush,
 } from "@agent-mixer/shared"
-import { MEETING_POINTS, meetNowTtl, summaryFields, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, pairCooldownMs, summaryFields, toPublic, type Store } from "./types"
 
 const CONV_CAP = 12
 const FEED_CAP = 40
@@ -20,6 +20,8 @@ export class MemoryStore implements Store {
   private feed: FeedItem[] = []
   private pending: string[] = []
   private pairsSeen = new Set<string>()
+  private pairEndedAt = new Map<string, number>() // pair key -> when their last conversation ended
+  private cooldownMs = pairCooldownMs()
   private pairCounter = 0
   private leases = new Map<string, number>() // conversationId -> lease expiry
   private listeners: ((p: ServerPush) => void)[] = []
@@ -111,17 +113,22 @@ export class MemoryStore implements Store {
       if (c.status === "active" && now > (this.leases.get(c.id) ?? c.startedAt + LEASE_MS)) {
         c.status = "ended"
         c.endedAt = now
+        this.pairEndedAt.set(this.pairKey(c.a, c.b), now)
         touched.add(c.a); touched.add(c.b)
         console.warn(`[router] lease expired: ${c.id}`)
       }
     }
-    // 2. candidates: every unseen pair, scored bilaterally
+    // 2. candidates: every pair not talking now and not cooling down, scored bilaterally
+    const live = new Set<string>()
+    for (const c of this.conversations.values()) if (c.status === "active") live.add(this.pairKey(c.a, c.b))
     const slots = new Map<string, number>()
     for (const r of this.roster) slots.set(r.id, this.maxParallel - this.activeCount(r.id))
     const cands: { a: PublicProfile; b: PublicProfile; score: number; human: boolean }[] = []
     for (let i = 0; i < this.roster.length; i++) for (let j = i + 1; j < this.roster.length; j++) {
       let a = this.roster[i], b = this.roster[j]
-      if (this.pairsSeen.has(this.pairKey(a.id, b.id))) continue
+      const k = this.pairKey(a.id, b.id)
+      if (live.has(k)) continue
+      if (this.pairsSeen.has(k) && now - (this.pairEndedAt.get(k) ?? 0) < this.cooldownMs) continue
       if (a.seeded && !b.seeded) [a, b] = [b, a] // the human's agent opens
       cands.push({ a, b, score: mutualScore(a, b), human: !a.seeded || !b.seeded })
     }
@@ -136,6 +143,7 @@ export class MemoryStore implements Store {
       slots.set(c.a.id, slots.get(c.a.id)! - 1)
       slots.set(c.b.id, slots.get(c.b.id)! - 1)
       this.pairsSeen.add(this.pairKey(c.a.id, c.b.id))
+      live.add(this.pairKey(c.a.id, c.b.id))
       const conv: Conversation = {
         id: `c-${c.a.id}-${c.b.id}-${++this.pairCounter}`, a: c.a.id, b: c.b.id, status: "active", lines: [], startedAt: now,
       }
@@ -177,6 +185,7 @@ export class MemoryStore implements Store {
     if (c.status === "active") {
       c.status = status
       c.endedAt = Date.now()
+      this.pairEndedAt.set(this.pairKey(c.a, c.b), c.endedAt)
     }
     if (introId) c.introId = introId
     await Promise.all([this.emitAttendee(a), this.emitAttendee(b), this.emitEvent()])
@@ -193,6 +202,7 @@ export class MemoryStore implements Store {
     if (c.status === "active") {
       c.status = "stopped"
       c.endedAt = Date.now()
+      this.pairEndedAt.set(this.pairKey(c.a, c.b), c.endedAt)
       await Promise.all([this.emitAttendee(c.a), this.emitAttendee(c.b), this.emitEvent()])
     }
   }
