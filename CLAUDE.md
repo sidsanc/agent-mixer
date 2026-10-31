@@ -5,7 +5,8 @@ Your agent works the room, so you only have the conversations worth having. Your
 ## Team and roles
 - **Siddhant (engineer):** all code: Terse durable actors, Agent Relay agents, backend, frontend, deployment.
 - **Julius (product):** product design, seed profiles, pitch deck, demo script, submission copy. Not a developer.
-- If you are Julius's Claude: never edit `apps/` or `packages/`. Write to `docs/` and Linear only.
+- If you are Julius's agent: never edit `apps/` or `packages/`. Write to `docs/` and Linear only.
+- Julius uses Codex, which reads `AGENTS.md`. Keep `CLAUDE.md` and `AGENTS.md` in step when you change a rule.
 
 ## Hard rules
 - **All app code is written at the hackathon (Oct 31, from 11:00).** Before that, only setup, docs, designs and content. Never add app code earlier.
@@ -16,8 +17,8 @@ Your agent works the room, so you only have the conversations worth having. Your
 - `docs/brief.md`: the product brief (source of truth)
 - `docs/idea.md`: the idea and its refinements
 - `docs/research/`: Terse, Agent Relay, sponsors, event rules
-- `docs/team-protocol.md`: how the two Claudes coordinate through Linear
-- `.claude/agents/`: subagents (engineering and product)
+- `docs/team-protocol.md`: how the two agents (Claude and Codex) coordinate through Linear
+- `.claude/agents/`: subagents (engineering and product); Codex follows them as playbooks via `AGENTS.md`
 - `.claude/skills/linear-sync/`: how to post status to Linear
 
 ## Coordination

@@ -1,11 +1,11 @@
 ---
 name: linear-sync
-description: How Siddhant's and Julius's Claudes coordinate through Linear. Use at the start of any work session, when a task is done or blocked, and when asked "what's the status" or "what should I work on".
+description: How Siddhant's Claude and Julius's Codex coordinate through Linear. Use at the start of any work session, when a task is done or blocked, and when asked "what's the status" or "what should I work on".
 ---
 
 # Linear sync
 
-Linear is the shared board between the two Claudes and the two humans. The Linear MCP server is configured in `.mcp.json`.
+Linear is the shared board between the two agents (Siddhant's Claude, Julius's Codex) and the two humans. The Linear MCP server is configured in `.mcp.json` (Claude) and `.codex/config.toml` (Codex).
 
 ## Board (already set up)
 - **Team:** YC-Hackathon-Agent-mixer (key `YC`). **Project:** Haunted Hacks: Agent Mixer (`P-YC-1`).
@@ -34,7 +34,7 @@ Limits: <known gaps or the fallback>
 For a blocker: `Blocked by: <exact error or missing decision>` and mention the other person.
 
 ## Handing work across
-- Julius's Claude creates `eng` issues for Siddhant when a design or content is ready ("Build sign-up screen per docs/design/sign-up.md").
+- Julius's Codex creates `eng` issues for Siddhant when a design or content is ready ("Build sign-up screen per docs/design/sign-up.md").
 - Siddhant's Claude creates `product` issues for Julius when a decision or content is needed ("Pick a name", "Review contact card wording").
 - Link the file or doc in the issue; don't paste long content.
 

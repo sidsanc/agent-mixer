@@ -9,12 +9,12 @@
 > - The agent **self-improves** with more conversations (future scope).
 
 ## Team setup (how we'll build it)
-- **Machines:** two Macs. Julius's Mac is set up with `./setup/mac.sh --role product`; Siddhant's (his sister's) with `./setup/mac.sh --role engineer`. The Windows PC isn't used.
+- **Machines:** two Macs. Julius's Mac is set up with `./setup/mac.sh --role product --agent codex` (she uses Codex); Siddhant's (his sister's) with `./setup/mac.sh --role engineer`. The Windows PC isn't used.
 - **Repo:** everything lives in the `agent-mixer` GitHub repo: setup scripts, Claude config, subagents, docs. Clone it and run one command; see `README.md`.
-- **Claude on both Macs:** the same project `CLAUDE.md`, gstack, design skills (impeccable, taste-skill, Emil Kowalski's skills), the frontend-design plugin, and 7 subagents:
+- **Agents:** Siddhant uses Claude Code, Julius uses Codex. Same rules in `CLAUDE.md` and `AGENTS.md`; gstack and the design skills (impeccable, taste-skill, Emil Kowalski's skills) for both; the frontend-design plugin for Claude. 7 subagents, which Codex follows as playbooks:
   - Product (Julius): `product-designer`, `seed-profile-writer`, `pitch-writer`
   - Engineering (Siddhant): `actor-engineer`, `relay-engineer`, `frontend-builder`, `demo-qa`
-- **Sync between the two Claudes:** Linear is the shared board (Linear MCP in `.mcp.json`; rules in `.claude/skills/linear-sync/`). GitHub carries files. Optionally, both Claudes also join one Agent Relay workspace on the day, so we can say we built it with two Claudes talking over Relay.
+- **Sync between the two agents:** Linear is the shared board (Linear MCP in `.mcp.json` for Claude and `.codex/config.toml` for Codex; rules in `.claude/skills/linear-sync/`). GitHub carries files. Optionally, both agents also join one Agent Relay workspace on the day, so we can say we built it with Claude and Codex talking over Relay.
 - **Rule:** no app code before Oct 31, 11:00. Setup, docs, designs and content are fine.
 
 Sources: whiteboard photo, two voice notes (Hindi/English, transcribed with Whisper large-v3), and the written description.

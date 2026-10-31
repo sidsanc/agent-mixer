@@ -1,0 +1,6 @@
+# Project config for Codex (app, CLI and IDE extension share it).
+# Codex reads this only after you trust the project folder.
+# Sign in once with: codex mcp login linear
+
+[mcp_servers.linear]
+url = "https://mcp.linear.app/mcp"

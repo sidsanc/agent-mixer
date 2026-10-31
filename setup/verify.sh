@@ -15,15 +15,19 @@ check gh gh --version
 check node node --version
 check bun bun --version
 check claude claude --version
-gstack_installed() { [ -d "$HOME/.claude/skills/gstack/bin" ] && echo installed; }
+check codex codex --version
+gstack_installed() { [ -d "$HOME/.claude/skills/gstack/bin" ] && echo "installed for Claude"; }
 check gstack gstack_installed
+gstack_codex() { ls -d "${CODEX_HOME:-$HOME/.codex}"/skills/gstack-* >/dev/null 2>&1 && echo "installed for Codex"; }
+check gstack-codex gstack_codex
 check terse terse --version
 check agent-relay agent-relay --version
 echo "GitHub login:"
 gh auth status >/dev/null 2>&1 && echo "  ✓ signed in" || echo "  ✗ run: gh auth login"
 echo "Repo config:"
-for f in CLAUDE.md .mcp.json .claude/settings.json; do
+for f in CLAUDE.md AGENTS.md .mcp.json .codex/config.toml .claude/settings.json; do
   [ -f "$REPO_ROOT/$f" ] && echo "  ✓ $f" || echo "  ✗ $f missing"
 done
-echo "Subagents: $(ls "$REPO_ROOT/.claude/agents" 2>/dev/null | grep -c '\.md$')"
+echo "(Claude needs claude + gstack; Codex needs codex + gstack-codex. One of the two is enough.)"
+echo "Subagents / playbooks: $(ls "$REPO_ROOT/.claude/agents" 2>/dev/null | grep -c '\.md$')"
 [ -f "$REPO_ROOT/.env" ] && echo "  ✓ .env present" || echo "  (no .env — engineer only)"
