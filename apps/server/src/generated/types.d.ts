@@ -115,12 +115,21 @@ interface $IntroContract {
     }
     Methods: {
         chat(attendeeId: string, text: string): Promise<IntroState>
+        /** Turns an unanswered request into "expired". Returns the state (also used by the server's expiry check). */
+        checkMeetNow(): Promise<IntroState | null>
         /** Idempotent: a second create for the same intro returns the existing state. */
         create(s: IntroState, contacts: Record<string, string>, meetingPoint?: string): Promise<IntroState>
-        /** Records Connect or Pass. First choice per person wins; a repeat tap is a no-op. */
+        /**
+         * Records Connect or Pass. Reversible (undo) until both chose Connect; then the intro locks.
+         * The same choice twice is a no-op. The meeting card is set exactly once, on mutual Connect.
+         */
         decide(attendeeId: string, choice: Choice): Promise<IntroState>
         get(): Promise<IntroState | null>
-        meet(attendeeId: string, action: "request" | "accept"): Promise<IntroState>
+        /**
+         * Meet now: request -> accept | decline | expire (after ttlMs), then each person can mark arrival.
+         * Onsite only. Declined or expired returns the pair to chat; a new request can be made.
+         */
+        meet(attendeeId: string, action: MeetAction, ttlMs?: number): Promise<IntroState>
         meetingCount(): Promise<number>
     }
 }
@@ -194,6 +203,10 @@ interface MeetNow {
     requestedBy: string
     at: number
     accepted: boolean
+    status?: MeetNowStatus
+    expiresAt?: number
+    respondedBy?: string
+    arrivedBy?: string[]
 }
 interface MeetingCard {
     point: string
@@ -213,11 +226,15 @@ interface PublicProfile {
     shareableGoal: string
     seeded?: boolean
     plantedFor?: Role[]
+    attendance?: Attendance
 }
 type ActiveRow = EventView["active"][number]
+type Attendance = "onsite" | "agent-only"
 type Choice = "connect" | "pass"
 type ConversationStatus = "active" | "ended" | "matched" | "stopped"
 type IntroStatus = "pending" | "connected" | "passed"
+type MeetAction = "request" | "accept" | "decline" | "arrive"
+type MeetNowStatus = "requested" | "accepted" | "declined" | "expired"
 type Role = "founder" | "investor" | "engineer" | "designer" | "gtm" | "other"
 
 export {}

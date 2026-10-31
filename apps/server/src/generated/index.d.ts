@@ -265,6 +265,10 @@ export declare namespace actors {
                 Args: Parameters<Stub["chat"]>
                 Result: Awaited<ReturnType<Stub["chat"]>>
             }
+            ["checkMeetNow"]: {
+                Args: Parameters<Stub["checkMeetNow"]>
+                Result: Awaited<ReturnType<Stub["checkMeetNow"]>>
+            }
             ["create"]: {
                 Args: Parameters<Stub["create"]>
                 Result: Awaited<ReturnType<Stub["create"]>>
@@ -297,6 +301,10 @@ export declare namespace actors {
             namespace chat {
                 type Args = $MethodTypes["chat"]["Args"]
                 type Result = $MethodTypes["chat"]["Result"]
+            }
+            namespace checkMeetNow {
+                type Args = $MethodTypes["checkMeetNow"]["Args"]
+                type Result = $MethodTypes["checkMeetNow"]["Result"]
             }
             namespace create {
                 type Args = $MethodTypes["create"]["Args"]

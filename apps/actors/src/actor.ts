@@ -17,7 +17,8 @@ import type {
   PublicProfile,
   Role,
 } from "./types"
-import { LEASE_MS, MAX_SLOTS, mutualScore } from "./types"
+import { EVENT_NAME, LEASE_MS, MAX_SLOTS, MEET_NOW_TTL_MS, mutualScore } from "./types"
+import type { MeetAction, MeetNow } from "./types"
 
 const CONVERSATIONS_CAP = 10
 const FEED_CAP = 40
@@ -33,6 +34,7 @@ function publicPart(p: PublicProfile): PublicProfile {
     bio: p.bio,
     shareableGoal: p.shareableGoal,
   }
+  out.attendance = p.attendance === "agent-only" ? "agent-only" : "onsite"
   if (p.seeded) out.seeded = true
   if (p.plantedFor && p.plantedFor.length) out.plantedFor = [...p.plantedFor]
   return out
@@ -121,7 +123,7 @@ export class Attendee extends Actor<{ attendeeId: string }, { type: "ping" }, { 
 type ActiveRow = EventView["active"][number]
 
 export class Event extends Actor<{ viewer: string }, { type: "ping" }, { type: "pong" }> {
-  @Persisted @Emittable name = "Haunted Hacks"
+  @Persisted @Emittable name = EVENT_NAME
   @Persisted @Emittable roster: PublicProfile[] = []
   @Persisted @Emittable active: ActiveRow[] = []
   @Persisted @Emittable feed: FeedItem[] = []
@@ -409,14 +411,17 @@ export class Intro extends Actor<{ attendeeId: string }, { type: "ping" }, { typ
     return this.meetingSetCount
   }
 
-  /** Records Connect or Pass. First choice per person wins; a repeat tap is a no-op. */
+  /**
+   * Records Connect or Pass. Reversible (undo) until both chose Connect; then the intro locks.
+   * The same choice twice is a no-op. The meeting card is set exactly once, on mutual Connect.
+   */
   async decide(attendeeId: string, choice: Choice): Promise<IntroState> {
     const s = requireParty(this.state, attendeeId)
-    if (s.choices[attendeeId] != null || s.status !== "pending") return s
+    if (s.status === "connected" || s.choices[attendeeId] === choice) return s
     const choices = { ...s.choices, [attendeeId]: choice }
     const ca = choices[s.a]
     const cb = choices[s.b]
-    let status: IntroState["status"] = s.status
+    let status: IntroState["status"] = "pending"
     let meeting = s.meeting
     if (ca === "pass" || cb === "pass") status = "passed"
     else if (ca === "connect" && cb === "connect") {
@@ -446,22 +451,70 @@ export class Intro extends Actor<{ attendeeId: string }, { type: "ping" }, { typ
     return this.state
   }
 
-  async meet(attendeeId: string, action: "request" | "accept"): Promise<IntroState> {
+  /**
+   * Meet now: request -> accept | decline | expire (after ttlMs), then each person can mark arrival.
+   * Onsite only. Declined or expired returns the pair to chat; a new request can be made.
+   */
+  async meet(attendeeId: string, action: MeetAction, ttlMs?: number): Promise<IntroState> {
+    const expired = withExpiredMeetNow(this.state)
+    if (expired) this.state = expired
     const s = requireParty(this.state, attendeeId)
     if (s.status !== "connected") throw new Error("meet opens after both choose Connect")
+    const now = Date.now()
+    const m = s.meetNow
+    const live = m && (m.status === "requested" || m.status === "accepted") ? m : null
+    let next: MeetNow | null = m
     if (action === "request") {
-      if (s.meetNow?.accepted) return s
-      if (s.meetNow && s.meetNow.requestedBy === attendeeId) return s // already requested
-      // The other side already asked: a request back is a yes.
-      this.state = s.meetNow
-        ? { ...s, meetNow: { ...s.meetNow, accepted: true } }
-        : { ...s, meetNow: { requestedBy: attendeeId, at: Date.now(), accepted: false } }
+      for (const id of [s.a, s.b]) {
+        if (s.profiles[id]?.attendance === "agent-only") throw new Error("meet now needs both people onsite")
+      }
+      if (live?.status === "accepted") return s
+      if (live && live.requestedBy === attendeeId) return s // already requested
+      if (live) next = { ...live, status: "accepted", accepted: true, respondedBy: attendeeId } // they asked too: a yes
+      else {
+        const ttl = ttlMs && ttlMs >= 1000 ? ttlMs : MEET_NOW_TTL_MS
+        next = { requestedBy: attendeeId, at: now, accepted: false, status: "requested", expiresAt: now + ttl, arrivedBy: [] }
+        this.alarm.set(now + ttl + 50)
+      }
+    } else if (action === "accept") {
+      if (!live) throw new Error("no meet now request to answer")
+      if (live.status === "accepted" || live.requestedBy === attendeeId) return s
+      next = { ...live, status: "accepted", accepted: true, respondedBy: attendeeId }
+    } else if (action === "decline") {
+      if (!live) throw new Error("no meet now request to answer")
+      if (live.status === "accepted") throw new Error("meet now was already accepted")
+      next = { ...live, status: "declined", accepted: false, respondedBy: attendeeId }
+    } else if (action === "arrive") {
+      if (live?.status !== "accepted") throw new Error("arrive needs an accepted meet now")
+      const arrived = live.arrivedBy ?? []
+      if (arrived.includes(attendeeId)) return s
+      next = { ...live, arrivedBy: [...arrived, attendeeId] }
     } else {
-      if (!s.meetNow || s.meetNow.accepted || s.meetNow.requestedBy === attendeeId) return s
-      this.state = { ...s, meetNow: { ...s.meetNow, accepted: true } }
+      throw new Error("unknown meet action")
     }
+    this.state = { ...s, meetNow: next }
     return this.state
   }
+
+  /** Turns an unanswered request into "expired". Returns the state (also used by the server's expiry check). */
+  async checkMeetNow(): Promise<IntroState | null> {
+    const expired = withExpiredMeetNow(this.state)
+    if (expired) this.state = expired
+    return this.state
+  }
+
+  async onAlarm(): Promise<void> {
+    const expired = withExpiredMeetNow(this.state)
+    if (expired) this.state = expired
+  }
+
+}
+
+/** The state with an unanswered, overdue Meet now request marked "expired", or null if nothing changes. */
+function withExpiredMeetNow(s: IntroState | null): IntroState | null {
+  const m = s?.meetNow
+  if (!s || !m || m.status !== "requested" || !m.expiresAt || Date.now() < m.expiresAt) return null
+  return { ...s, meetNow: { ...m, status: "expired", accepted: false } }
 }
 
 function requireParty(s: IntroState | null, attendeeId: string): IntroState {
