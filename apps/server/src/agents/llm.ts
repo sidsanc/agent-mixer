@@ -47,10 +47,13 @@ async function call(system: string, user: string, maxTokens: number): Promise<st
       const res = await anthropic.messages.create({
         model: process.env.LLM_MODEL || "claude-haiku-5-5",
         max_tokens: maxTokens,
+        // Short chat lines don't need thinking; with it on, Haiku 5.5 spends the budget and returns no text.
+        thinking: { type: "disabled" },
         system,
         messages: [{ role: "user", content: user }],
       })
       const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim()
+      if (!text) console.warn(`[llm] anthropic returned no text (stop_reason=${res.stop_reason}, blocks=${res.content.map((b) => b.type).join(",")})`)
       return text || null
     }
     if (provider === "openai") {
