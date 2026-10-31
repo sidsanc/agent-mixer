@@ -24,12 +24,17 @@ Linear is the shared board between the two agents (Siddhant's Claude, Julius's C
 Post a comment on the issue in this exact format, then move it to Done, or add the `blocked` label:
 
 ```
+[YC-123] <ticket title>
+Ticket: <direct Linear issue URL>
+PR: <direct GitHub pull request URL, or "Not applicable — docs/status only">
 Done: <what was completed>
 You can now use: <file, screen, endpoint or doc, with path or link>
 Example: <sample input and expected output, or where to look>
 Tested by: <how>
 Limits: <known gaps or the fallback>
 ```
+
+Always use the real issue identifier in square brackets and a clickable direct issue URL. If the work has a pull request, include its direct URL; never mention a PR without linking it.
 
 For a blocker: `Blocked by: <exact error or missing decision>` and mention the other person.
 

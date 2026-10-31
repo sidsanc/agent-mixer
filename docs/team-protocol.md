@@ -16,11 +16,16 @@ Siddhant uses Claude Code; Julius uses Codex. Claude reads `CLAUDE.md`, Codex re
 
 ## Handoff format
 Every "done" message, in Linear or out loud:
-1. What was completed
-2. What the other person can now use
-3. A sample input and expected output
-4. How it was tested
-5. Known limits or the fallback
+1. Start with the ticket in square brackets: `[YC-123] Ticket title`.
+2. Provide the direct Linear ticket URL.
+3. Provide the direct GitHub PR URL when one exists; otherwise say that no PR applies.
+4. Say what was completed.
+5. Say what the other person can now use.
+6. Give a sample input and expected output.
+7. Say how it was tested.
+8. Note known limits or the fallback.
+
+Never mention a ticket or PR without its direct link.
 
 ## Blocker rule
 - Try alone for 5 minutes.
