@@ -98,3 +98,11 @@ Either person can go first. Their Connect becomes a visible request: the other p
 - **Visibility:** in each viewer's data, the other person's choice is shown only when it is `connect` (`MatchSummary.theyConnected`, and `IntroState.choices[other]` = `"connect"` or `null`). A Pass is never shown to the other side; that is the silent decline. The sender keeps seeing "Request sent · Waiting".
 - **Withdraw:** the sender can withdraw (switch to Pass) until both Connect.
 - **Seed agents act as their own human.** When a human connects with a seed agent that judged the conversation a fit, the seed accepts after 2–5s. Seeds reply in the human chat (LLM, in character) and accept Meet now, then mark arrived, so the demo never stalls.
+
+## Partiful-style flow (added 15:15, Siddhant's spec)
+
+1. **Sign up once:** `POST /api/signup {name, agentName?, role, goal, bio?, avatar?, privateIntent?}` creates the attendee but **does not join an event**. The phone stores `attendeeId`; returning users skip sign-up.
+2. **Events today:** `GET /api/events` returns `[{id, name, when, where, blurb, live: boolean, joined?: boolean}]`. Haunted Hacks is live; 3–4 dummy events are `live: false` (shown disabled, "Coming soon").
+3. **Join:** `POST /api/events/:id/join {attendeeId, attendance}` joins the Event actor. Only live events can be joined.
+4. **In the room:** agents hold long-running conversations without interruption. Each lasts ~8 lines; pairs can talk again after a cooldown, so the room never goes quiet.
+5. **Connections:** after both Connect, the other person's contact card (name, role, contact, how to spot, opener, event) appears in a Connections list, with chat and Meet now inside it.
