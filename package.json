@@ -7,6 +7,8 @@
     "packages/shared"
   ],
   "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "test:e2e": "bun scripts/e2e.ts",
     "dev:actors": "cd apps/actors && terse actor dev",
     "dev:server": "bun --cwd apps/server run dev",
     "dev:web": "bun --cwd apps/web run dev",
