@@ -11,7 +11,11 @@ import { z } from "zod"
 import type { Profile } from "@agent-mixer/shared"
 import type { Engine, LineMsg, ProposeMatchInput, Transport } from "../agents/engine"
 
-const BASE = "https://cast.agentrelay.com/v1"
+// RELAY_BASE_URL=http://127.0.0.1:8787/v1 selects the self-hosted engine (`bun run dev:relay`); unset = hosted.
+const LOCAL = !!process.env.RELAY_BASE_URL
+const ORIGIN = (process.env.RELAY_BASE_URL || "https://cast.agentrelay.com").replace(/\/+$/, "").replace(/\/v1$/, "")
+const BASE = `${ORIGIN}/v1`
+const KEY_VAR = LOCAL ? "RELAY_LOCAL_WORKSPACE_KEY" : "RELAY_WORKSPACE_KEY"
 const WAIT_MS = Number(process.env.RELAY_WAIT_MS ?? 5000)
 const ACTION = "propose_match"
 const MATCHMAKER = "am-matchmaker"
@@ -53,9 +57,11 @@ export class RelayTransport implements Transport {
   }
 
   static async start(engine: Engine, repoRoot: string): Promise<RelayTransport> {
-    let key = process.env.RELAY_WORKSPACE_KEY
+    let key = process.env[KEY_VAR]
     if (!key) key = await createWorkspace(repoRoot)
+    console.log(`[relay] using ${LOCAL ? `self-hosted engine at ${ORIGIN}` : "hosted Relaycast"}`)
     const relay = new AgentRelay({
+      ...(LOCAL ? { baseUrl: ORIGIN } : {}),
       workspaceKey: key,
       onError: (e: any, ctx: any) => {
         console.warn(`[relay] error (${ctx?.selector ?? ctx?.action ?? "?"} ${ctx?.operation ?? ""}): ${e?.message ?? e}`)
@@ -235,6 +241,7 @@ export class RelayTransport implements Transport {
 
   /** Read-only observer link for the big screen (best effort). */
   private async createObserver() {
+    if (LOCAL) return // agentrelay.com/observer only reads the hosted engine
     const tk = `${this.keyTag}:observer`
     if (this.tokens[tk]) { this.observerUrl = this.tokens[tk]; return }
     const res = await fetch(`${BASE}/observer-tokens`, {
@@ -258,8 +265,8 @@ async function createWorkspace(repoRoot: string): Promise<string> {
   const j: any = await res.json()
   const key = j?.data?.api_key
   if (!key) throw new Error(`workspace create failed: ${res.status}`)
-  appendFileSync(join(repoRoot, ".env"), `\nRELAY_WORKSPACE_KEY=${key}\n`)
-  process.env.RELAY_WORKSPACE_KEY = key
-  console.log("[relay] created a new Relay workspace and saved RELAY_WORKSPACE_KEY to .env")
+  appendFileSync(join(repoRoot, ".env"), `\n${KEY_VAR}=${key}\n`)
+  process.env[KEY_VAR] = key
+  console.log(`[relay] created a new Relay workspace on ${ORIGIN} and saved ${KEY_VAR} to .env`)
   return key
 }
