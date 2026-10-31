@@ -96,6 +96,11 @@ const founder = {
   privateIntent: `runway worry ${run} only eight weeks of cash left`,
   contact: `finn-${run}@example.test`,
 }
+const founder2 = {
+  name: `Ola Online ${run}`, role: "founder", bio: "Building developer tools remotely.", attendance: "agent-only",
+  goal: `Raise a seed round for ${tag} developer tools`,
+  contact: `ola-${run}@example.test`,
+}
 const third = {
   name: `Theo Third ${run}`, role: "engineer", bio: "Backend engineer.",
   goal: "Explore joining an early startup as a founding engineer.",
@@ -115,17 +120,28 @@ async function main() {
   report(bad.status === 400, "signup validation rejects empty name/goal", `got ${bad.status}`)
 
   // ---- sign up ----
-  const [si, sf, st] = await Promise.all([investor, founder, third].map((p) => api("POST", "/api/signup", p)))
+  const badAtt = await api("POST", "/api/signup", { ...third, attendance: "moon" })
+  report(badAtt.status === 400, "signup rejects an unknown attendance", `got ${badAtt.status}`)
+  const [si, sf, st, s2] = await Promise.all([investor, founder, third, founder2].map((p) => api("POST", "/api/signup", p)))
   must(si.status === 200 && !!si.data.attendeeId, "investor signs up", si.data.attendeeId)
   must(sf.status === 200 && !!sf.data.attendeeId, "founder signs up", sf.data.attendeeId)
   must(st.status === 200 && !!st.data.attendeeId, "third human signs up", st.data.attendeeId)
+  must(s2.status === 200 && !!s2.data.attendeeId, "agent-only founder signs up", s2.data.attendeeId)
   const I = si.data.attendeeId as string, F = sf.data.attendeeId as string, T = st.data.attendeeId as string
+  const F2 = s2.data.attendeeId as string
 
   // Two SSE clients for the investor (every client must get intro updates), one for the founder.
   const sI1 = stream(I), sI2 = stream(I), sF = stream(F)
 
   const view = async (id: string) => (await api<AttendeeView>("GET", `/api/attendee/${id}`)).data
-  must((await view(I)).profile?.id === I, "attendee view returns the profile")
+  const vI = await view(I)
+  must(vI.profile?.id === I, "attendee view returns the profile")
+  report(vI.profile?.attendance === "onsite" && (await view(F2)).profile?.attendance === "agent-only",
+    "attendance is public (default onsite, agent-only kept)")
+  report(!JSON.stringify(vI).includes(investor.privateIntent) && !JSON.stringify(vI).includes(investor.contact),
+    "own attendee view holds no private intent or contact")
+  const evName = (await api("GET", "/api/event")).data?.name
+  report(evName === "Haunted Hacks: Real-Time AI Edition", "event name", evName)
 
   // ---- conversations ----
   for (const [who, id] of [["investor", I], ["founder", F]] as const) {
@@ -165,8 +181,15 @@ async function main() {
   const fView1 = JSON.stringify(await view(F))
   report(!contactsVisible(asF1) && !contactsVisible(asI1) && !fView1.includes(investor.contact) && !JSON.stringify(asF1).includes(investor.contact),
     "one-sided connect leaks no contact")
-  const dup = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "pass" })
-  report(dup.data?.choices?.[I] === "connect", "double tap is a no-op", `choice=${dup.data?.choices?.[I]}`)
+  const dup = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "connect" })
+  report(dup.data?.choices?.[I] === "connect" && dup.data.status === "pending", "double tap is a no-op", `choice=${dup.data?.choices?.[I]}`)
+  const undo1 = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "pass" })
+  report(undo1.data?.status === "passed" && undo1.data.choices[I] === "pass", "connect can be changed to pass", `status=${undo1.data?.status}`)
+  const mPassed = (await view(I)).matches.find((m) => m.introId === introId)
+  report(mPassed?.status === "passed" && mPassed.myChoice === "pass", "match summary shows passed (recoverable)")
+  const undo2 = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "connect" })
+  report(undo2.data?.status === "pending" && undo2.data.choices[I] === "connect", "pass can be undone back to connect", `status=${undo2.data?.status}`)
+  report(!contactsVisible(undo2.data), "undo flips leak no contact")
   const early = await api("POST", `/api/intro/${introId}/chat`, { attendeeId: I, text: "too early" })
   report(early.status === 409, "chat is closed before mutual connect", `got ${early.status}`)
   const stranger = await api("POST", `/api/intro/${introId}/decide`, { attendeeId: T, choice: "connect" })
@@ -183,6 +206,9 @@ async function main() {
     "meeting card carries both contacts")
   const again = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: F, choice: "connect" })
   report(card(again.data) === card(asI), "repeat connect keeps the same meeting card")
+  const late = await api<IntroState>("POST", `/api/intro/${introId}/decide`, { attendeeId: I, choice: "pass" })
+  report(late.data?.status === "connected" && late.data.choices[I] === "connect" && card(late.data) === card(asI),
+    "after mutual connect the intro is locked", `status=${late.data?.status}`)
 
   // Third human (not a party) sees no contacts and no chat.
   const asT = (await api<IntroState>("GET", `/api/intro/${introId}?as=${T}`)).data
@@ -204,18 +230,65 @@ async function main() {
     "third person cannot read the chat")
 
   // ---- meet now ----
-  const r1 = await api<IntroState>("POST", `/api/intro/${introId}/meet`, { attendeeId: I, action: "request" })
-  must(r1.status === 200 && r1.data.meetNow?.requestedBy === I && r1.data.meetNow.accepted === false, "investor requests meet now")
-  const sseReq = await waitFor(async () => sF.intros(introId).some((x) => x.meetNow?.requestedBy === I), 5000, 250)
+  const meet = (who: string, action: string) => api<IntroState>("POST", `/api/intro/${introId}/meet`, { attendeeId: who, action })
+  const noReq = await meet(F, "accept")
+  report(noReq.status === 409, "accept without a request is 409", `got ${noReq.status}`)
+  const badAction = await meet(F, "teleport")
+  report(badAction.status === 400, "unknown meet action is 400", `got ${badAction.status}`)
+  const d0 = await meet(I, "request")
+  report(d0.status === 200 && d0.data.meetNow?.status === "requested" && !!d0.data.meetNow.expiresAt, "investor requests meet now (first try)")
+  const dec = await meet(F, "decline")
+  report(dec.status === 200 && dec.data.meetNow?.status === "declined" && dec.data.status === "connected",
+    "founder declines; back to chat", `meetNow=${dec.data?.meetNow?.status}`)
+  const sseDec = await waitFor(async () => [sI1, sI2].every((s) => s.intros(introId).some((x) => x.meetNow?.status === "declined")), 5000, 250)
+  report(!!sseDec, "decline is pushed to the investor's SSE clients")
+  const ttl = Number(health.data?.meetNowTtlMs ?? 0)
+  if (ttl && ttl <= 15_000) {
+    const e1 = await meet(I, "request")
+    report(e1.data?.meetNow?.status === "requested", `request again to test expiry (ttl ${ttl}ms)`)
+    const exp = await waitFor(async () => [sI1, sF].every((s) => s.intros(introId).some((x) => x.meetNow?.status === "expired" && x.meetNow.at === e1.data.meetNow!.at)), ttl + 5000, 250)
+    report(!!exp, "unanswered request expires and is pushed over SSE")
+    const g = (await api<IntroState>("GET", `/api/intro/${introId}?as=${F}`)).data
+    report(g.meetNow?.status === "expired" && g.status === "connected", "expired request returns to chat")
+    const lateAcc = await meet(F, "accept")
+    report(lateAcc.status === 409, "an expired request cannot be accepted", `got ${lateAcc.status}`)
+  } else {
+    console.log(`SKIP expiry check (server meetNowTtlMs=${ttl}; start it with MEET_NOW_TTL_MS=8000 to cover expiry)`)
+  }
+  const earlyArrive = await meet(I, "arrive")
+  report(earlyArrive.status === 409, "arrive before accept is 409", `got ${earlyArrive.status}`)
+  const r1 = await meet(I, "request")
+  must(r1.status === 200 && r1.data.meetNow?.requestedBy === I && r1.data.meetNow.status === "requested" && r1.data.meetNow.accepted === false,
+    "investor requests meet now")
+  const sseReq = await waitFor(async () => sF.intros(introId).some((x) => x.meetNow?.requestedBy === I && x.meetNow.at === r1.data.meetNow!.at), 5000, 250)
   report(!!sseReq, "founder's SSE sees the meet-now request")
-  const r2 = await api<IntroState>("POST", `/api/intro/${introId}/meet`, { attendeeId: F, action: "accept" })
-  must(r2.status === 200 && r2.data.meetNow?.accepted === true, "founder accepts meet now")
+  const r2 = await meet(F, "accept")
+  must(r2.status === 200 && r2.data.meetNow?.accepted === true && r2.data.meetNow.status === "accepted", "founder accepts meet now")
+  const a1 = await meet(I, "arrive")
+  const a1b = await meet(I, "arrive")
+  const a2 = await meet(F, "arrive")
+  report(a1.status === 200 && a1b.data.meetNow?.arrivedBy?.length === 1 && a2.data.meetNow?.arrivedBy?.length === 2,
+    "both mark arrival (repeat is a no-op)", JSON.stringify(a2.data?.meetNow?.arrivedBy))
+  const lateDecline = await meet(F, "decline")
+  report(lateDecline.status === 409, "an accepted meet now cannot be declined", `got ${lateDecline.status}`)
   const sseAcc = await waitFor(async () => [sI1, sI2].every((s) => s.intros(introId).some((x) => x.meetNow?.accepted)), 5000, 250)
   report(!!sseAcc, "investor's SSE clients see the acceptance")
   const sseDecide = [sI1, sI2, sF].every((s) => s.intros(introId).some((x) => x.status === "connected"))
   report(sseDecide, "connect decision was pushed over SSE to both parties")
   const sseContacts = sF.intros(introId).filter((x) => x.status !== "connected").every((x) => !contactsVisible(x))
   report(sseContacts, "SSE never carried contacts before connect")
+
+  // ---- agent-only: no Meet now ----
+  const m2 = await waitFor(async () => (await view(I)).matches.find((m) => m.other.id === F2), MATCH_MS, 1000)
+  if (report(!!m2, "investor also matches the agent-only founder", m2?.introId ?? "none")) {
+    await api("POST", `/api/intro/${m2!.introId}/decide`, { attendeeId: I, choice: "connect" })
+    const c = await api<IntroState>("POST", `/api/intro/${m2!.introId}/decide`, { attendeeId: F2, choice: "connect" })
+    report(c.data?.status === "connected", "agent-only pair connects")
+    const ch = await api<IntroState>("POST", `/api/intro/${m2!.introId}/chat`, { attendeeId: F2, text: "remote hello" })
+    report(ch.status === 200, "agent-only person can chat")
+    const mn = await api("POST", `/api/intro/${m2!.introId}/meet`, { attendeeId: I, action: "request" })
+    report(mn.status === 409 && /onsite/.test(mn.data?.error ?? ""), "meet now is refused unless both are onsite", `${mn.status} ${mn.data?.error}`)
+  }
 
   // ---- end conversation ----
   const active = await waitFor(async () => {
