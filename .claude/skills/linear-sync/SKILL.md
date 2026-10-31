@@ -7,22 +7,21 @@ description: How Siddhant's and Julius's Claudes coordinate through Linear. Use 
 
 Linear is the shared board between the two Claudes and the two humans. The Linear MCP server is configured in `.mcp.json`.
 
-## Board
-- **Team:** Agent Mixer. **Project:** Haunted Hacks.
-- **Milestones and tickets:** defined in `docs/linear-plan.md` (M0 Prep → M6 Ship). Each ticket title starts with its ID, e.g. "M2-2 Event actor: roster, pairing, alarm-driven rounds".
-- **Statuses:** Todo, Now, Blocked, Done, Cut. Keep at most one issue in Now per person.
-- **Labels:** owner `eng` (Siddhant) or `product` (Julius), plus one area label (`backend`, `agents`, `frontend`, `design`, `content`, `pitch`, `ops`). Assign the issue to its human owner.
-
-## First-time setup (once, by whoever connects Linear first)
-If the project has no milestones yet: create the project, the 7 milestones, the labels, and one issue per row of `docs/linear-plan.md`, with the "Done when" text as the description. Search first so nothing is created twice.
+## Board (already set up)
+- **Team:** YC-Hackathon-Agent-mixer (key `YC`). **Project:** Haunted Hacks: Agent Mixer (`P-YC-1`).
+- **Milestones and tickets:** M0 Prep → M6 Ship, 37 tickets (YC-5 to YC-41), mirroring `docs/linear-plan.md`. Each ticket title starts with its plan ID, e.g. "M2-2 Event actor: …", and its description holds the "Done when" check.
+- **Statuses:** Todo → In Progress → Done. Cut work goes to Canceled. Keep at most one issue In Progress per person.
+- **Blocked:** add the `blocked` label and a comment saying what's needed; remove the label when unblocked.
+- **Labels:** owner `eng` (Siddhant) or `product` (Julius), plus one area label (`backend`, `agents`, `frontend`, `design`, `content`, `pitch`, `ops`). `eng` issues are assigned to Siddhant; assign `product` issues to Julius once she joins the workspace.
+- New tickets: same title format with the next free plan ID in that milestone; search first so nothing is duplicated.
 
 ## At the start of a session
 1. List open issues in the project. Note anything Blocked that's waiting on your side.
 2. Tell your human what changed since last time in two or three lines.
-3. Move the issue you're starting to Now.
+3. Move the issue you're starting to In Progress.
 
 ## When something is done or blocked
-Post a comment on the issue in this exact format, then move it to Done or Blocked:
+Post a comment on the issue in this exact format, then move it to Done, or add the `blocked` label:
 
 ```
 Done: <what was completed>

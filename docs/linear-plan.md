@@ -1,13 +1,13 @@
 # Linear plan: milestones and tickets
 
-How to set it up in Linear:
-- **Team:** Agent Mixer. **Project:** Haunted Hacks.
+Linear setup (done):
+- **Team:** YC-Hackathon-Agent-mixer. **Project:** Haunted Hacks: Agent Mixer (created; tickets YC-5 to YC-41).
 - **Project milestones:** M0–M6 below, in order.
 - **Labels, owner:** `eng` (Siddhant), `product` (Julius).
 - **Labels, area:** `backend`, `agents`, `frontend`, `design`, `content`, `pitch`, `ops`.
-- **Statuses:** Todo, Now, Blocked, Done, Cut.
+- **Statuses:** Todo, In Progress, Done, Canceled; blocked = the `blocked` label.
 
-Each ticket's description holds its "Done when" line. Claude creates these tickets from this file once Linear is connected (see `.claude/skills/linear-sync/SKILL.md`).
+Each ticket's description holds its "Done when" line. These tickets already exist in Linear; this file is the plan they were created from.
 
 ## M0: Prep (tonight, Oct 30). No app code.
 | ID | Ticket | Owner | Area | Done when |

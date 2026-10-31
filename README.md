@@ -50,7 +50,7 @@ Then:
 Ask Claude to use one, e.g. "Use the seed-profile-writer agent to draft the profiles."
 
 ## How we stay in sync
-Linear is the shared board between both Claudes; GitHub carries the files. See `docs/team-protocol.md`.
+Linear is the shared board between both Claudes ([project](https://linear.app/yc-hackathon-agent-mixer/project/haunted-hacks-agent-mixer-9079e41d3b4a), 37 tickets across milestones M0–M6); GitHub carries the files. See `docs/team-protocol.md`.
 
 ## Where things are
 - `docs/brief.md`: link to the product and pitch brief (source of truth)
