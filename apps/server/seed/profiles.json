@@ -9,7 +9,8 @@
     "privateIntent": "Already has a soft lead at 1.5M; wants one more angel with infra operator experience, and would rather not talk to generalist funds.",
     "contact": "maya@tracewell.dev",
     "plantedFor": ["investor"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "woman1"
   },
   {
     "id": "dev-raman",
@@ -21,7 +22,8 @@
     "privateIntent": "Fund is nearly fully deployed this quarter; looking for two more seed deals, strongly prefers technical solo founders.",
     "contact": "dev@lantern.vc",
     "plantedFor": ["founder"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "man1"
   },
   {
     "id": "priya-nair",
@@ -33,7 +35,8 @@
     "privateIntent": "Can offer 1.5 to 2 percent equity and a below-market salary until the seed closes; worried about candidates who only want big-company process.",
     "contact": "priya@ledgerline.ai",
     "plantedFor": ["engineer"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "woman2"
   },
   {
     "id": "leo-okafor",
@@ -45,7 +48,8 @@
     "privateIntent": "The current app was built from templates and churn is high; needs someone who can redo onboarding fast, and a seller who has sold to gyms before.",
     "contact": "leo@pollen.fit",
     "plantedFor": ["designer", "gtm"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "man2"
   },
   {
     "id": "sam-rivera",
@@ -57,7 +61,8 @@
     "privateIntent": "Quietly looking for a cofounder for the next company; wants to see who is energetic and generous with ideas.",
     "contact": "sam@riverahq.com",
     "plantedFor": ["other"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "robot"
   },
   {
     "id": "jordan-park",
@@ -69,6 +74,7 @@
     "privateIntent": "Has a big-company offer that expires in three weeks; would leave for the right founder, needs at least a modest salary.",
     "contact": "jordan.park@hey.com",
     "plantedFor": ["founder"],
-    "seeded": true
+    "seeded": true,
+    "avatar": "man1"
   }
 ]

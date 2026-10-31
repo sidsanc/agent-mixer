@@ -17,7 +17,7 @@ import type {
   PublicProfile,
   Role,
 } from "./types"
-import { EVENT_NAME, LEASE_MS, MAX_SLOTS, MEET_NOW_TTL_MS, mutualScore } from "./types"
+import { AVATAR_IDS, EVENT_NAME, LEASE_MS, MAX_SLOTS, MEET_NOW_TTL_MS, mutualScore } from "./types"
 import type { MeetAction, MeetNow } from "./types"
 
 const CONVERSATIONS_CAP = 10
@@ -36,6 +36,7 @@ function publicPart(p: PublicProfile): PublicProfile {
   }
   out.attendance = p.attendance === "agent-only" ? "agent-only" : "onsite"
   if (p.seeded) out.seeded = true
+  if (p.avatar && AVATAR_IDS.includes(p.avatar)) out.avatar = p.avatar
   if (p.plantedFor && p.plantedFor.length) out.plantedFor = [...p.plantedFor]
   return out
 }
