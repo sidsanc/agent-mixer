@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Mixer — GTA-inspired visual directions</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #17141b; background: #ece9e5; font-family: "Avenir Next", ui-sans-serif, sans-serif; }
+    button { font: inherit; cursor: pointer; }
+    .page { max-width: 1220px; margin: auto; padding: 38px 26px 60px; }
+    .intro { max-width: 700px; margin-bottom: 34px; }
+    .intro h1 { margin: 0 0 8px; font-family: "Avenir Next Condensed", sans-serif; font-size: clamp(34px, 5vw, 62px); line-height: .94; letter-spacing: -.035em; text-transform: uppercase; }
+    .intro p { margin: 0; color: #69636e; line-height: 1.55; }
+    .directions { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .direction { padding: 20px; overflow: hidden; border-radius: 22px; }
+    .direction-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .direction h2 { margin: 0; font-family: "Avenir Next Condensed", sans-serif; font-size: 28px; line-height: 1; text-transform: uppercase; }
+    .direction-head p { max-width: 230px; margin: 0; font-size: 12px; line-height: 1.35; text-align: right; }
+    .phone { position: relative; width: min(390px, 100%); height: 760px; margin: auto; overflow: hidden; border: 7px solid #151219; border-radius: 34px; }
+    .top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 10px; }
+    .hamburger { width: 39px; height: 39px; display: grid; place-items: center; border: 0; border-radius: 11px; }
+    .hamburger i, .hamburger i::before, .hamburger i::after { display: block; width: 17px; height: 2px; border-radius: 2px; background: currentColor; }
+    .hamburger i { position: relative; }
+    .hamburger i::before, .hamburger i::after { content: ""; position: absolute; left: 0; }
+    .hamburger i::before { top: -5px; } .hamburger i::after { top: 5px; }
+    .avatar { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 12px; font-size: 12px; font-weight: 900; }
+    .screen { position: relative; z-index: 1; padding: 8px 18px 22px; }
+    .kicker { margin: 5px 0 9px; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .screen h3 { max-width: 290px; margin: 0; font-family: "Avenir Next Condensed", sans-serif; font-size: 40px; line-height: .95; letter-spacing: -.03em; text-transform: uppercase; }
+    .screen > p { max-width: 300px; margin: 10px 0 18px; font-size: 13px; line-height: 1.45; }
+    .mission { position: relative; padding: 16px; overflow: hidden; border-radius: 15px; }
+    .mission small { font-size: 10px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .mission h4 { margin: 7px 0 5px; font-size: 21px; line-height: 1.05; }
+    .mission p { margin: 0; font-size: 12px; line-height: 1.4; }
+    .cta { width: 100%; min-height: 46px; margin-top: 15px; border: 0; border-radius: 12px; font-weight: 900; text-transform: uppercase; }
+    .social-label { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .contacts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .contact { min-width: 0; padding: 10px 8px; border-radius: 12px; text-align: center; }
+    .face { width: 47px; height: 47px; display: grid; place-items: center; margin: 0 auto 7px; border-radius: 15px; font-weight: 900; }
+    .contact strong { display: block; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .contact span { display: block; margin-top: 2px; font-size: 9px; }
+    .map { position: absolute; right: -30px; bottom: 6px; width: 180px; height: 150px; opacity: .18; transform: rotate(-8deg); }
+    .map i { position: absolute; display: block; height: 3px; border-radius: 3px; background: currentColor; transform-origin: left center; }
+    .map i:nth-child(1) { width: 160px; left: 5px; top: 30px; transform: rotate(30deg); }
+    .map i:nth-child(2) { width: 145px; left: 25px; top: 80px; transform: rotate(-24deg); }
+    .map i:nth-child(3) { width: 125px; left: 45px; top: 20px; transform: rotate(82deg); }
+    .map i:nth-child(4) { width: 110px; left: 10px; top: 115px; transform: rotate(-5deg); }
+    .pin { position: absolute; right: 54px; bottom: 90px; z-index: 2; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); font-size: 10px; font-weight: 900; }
+    .pin b { transform: rotate(45deg); }
+    .caption { margin: 14px auto 0; max-width: 390px; font-size: 12px; line-height: 1.45; }
+
+    .vice { color: #fff; background: #2b123c; }
+    .vice .direction-head p { color: #cdbbd7; }
+    .vice .phone { color: #fff; background: linear-gradient(160deg, #35134d 0%, #6f1b70 44%, #f06d87 100%); }
+    .vice .phone::before { content:""; position:absolute; inset:auto -70px -80px auto; width:310px; height:310px; border:1px solid rgba(255,255,255,.25); border-radius:50%; box-shadow:0 0 0 35px rgba(255,255,255,.05),0 0 0 70px rgba(255,255,255,.04); }
+    .vice .hamburger { color: #fff; background: #3b1851; }
+    .vice .avatar { color: #2b123c; background: #ffdc5f; }
+    .vice .kicker { color: #7ff9f0; }
+    .vice .screen h3 { text-shadow: 3px 3px 0 #2f143e; }
+    .vice .screen > p { color: #f5ddeb; }
+    .vice .mission { color: #26102f; background: #fff5d8; box-shadow: 0 12px 28px rgba(30,8,38,.28); transform: rotate(-1deg); }
+    .vice .mission small { color: #a22370; }
+    .vice .cta { color: #24102d; background: #7ff9f0; box-shadow: 0 7px 0 #2f8f98; }
+    .vice .social-label { color: #ffdc5f; }
+    .vice .contact { background: rgba(41,13,53,.48); }
+    .vice .contact span { color: #e8cddd; }
+    .vice .face { color: #32133f; background: #ffdc5f; }
+    .vice .contact:nth-child(2) .face { background: #7ff9f0; }
+    .vice .contact:nth-child(3) .face { background: #ff8db8; }
+    .vice .map { color: #9dfff7; }
+    .vice .pin { color: #2b123c; background: #ffdc5f; }
+    .vice .caption { color: #d8bfdc; }
+
+    .los { color: #171510; background: #d9c59a; }
+    .los .direction-head p { color: #5d513a; }
+    .los .phone { color: #181612; background: #f4e9c9; }
+    .los .phone::before { content:""; position:absolute; inset:0; background:linear-gradient(150deg,transparent 55%,rgba(50,119,83,.15)); pointer-events:none; }
+    .los .hamburger { color: #fff; background: #171510; }
+    .los .avatar { color: #fff; background: #d34727; }
+    .los .kicker { color: #b03720; }
+    .los .screen h3 { text-shadow: 2px 2px 0 #e8c968; }
+    .los .screen > p { color: #5d5547; }
+    .los .mission { color: #fff; background: #203f33; box-shadow: 0 12px 24px rgba(40,45,25,.2); transform: rotate(.5deg); }
+    .los .mission small { color: #f2c655; }
+    .los .mission p { color: #d5e0d4; }
+    .los .cta { color: #fff; background: #d34727; box-shadow: 0 7px 0 #792514; }
+    .los .social-label { color: #203f33; }
+    .los .contact { border: 1px solid #c7b98f; background: rgba(255,255,255,.48); }
+    .los .contact span { color: #746a55; }
+    .los .face { color: #fff; background: #d34727; }
+    .los .contact:nth-child(2) .face { background: #287855; }
+    .los .contact:nth-child(3) .face { background: #d69f2c; }
+    .los .map { color: #203f33; opacity: .2; }
+    .los .pin { color: #fff; background: #d34727; }
+    .los .caption { color: #5d513a; }
+
+    @media (max-width: 850px) { .directions { grid-template-columns: 1fr; } .page { padding: 24px 12px 46px; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="intro">
+      <h1>Two social-city directions</h1>
+      <p>Same Agent Mixer product, two different GTA-inspired visual worlds. Neither copies game logos, characters, or weapons—the reference is translated into social energy, city navigation, missions, contacts, and crew.</p>
+    </header>
+    <div class="directions">
+      <section class="direction vice">
+        <div class="direction-head"><h2>Vice City Social</h2><p>Nightlife, neon coastline, high-energy party discovery.</p></div>
+        <div class="phone">
+          <div class="top"><button class="hamburger" aria-label="Menu"><i></i></button><div class="avatar">JU</div></div>
+          <div class="screen">
+            <div class="kicker">Friday night · You’re here</div>
+            <h3>Your crew is working the party</h3>
+            <p>Shimo is talking to three people who could change what you build next.</p>
+            <div class="mission"><small>Live mission</small><h4>Haunted Hacks</h4><p>3 conversations · 1 new match · first meetup ready</p><button class="cta">Enter the party</button></div>
+            <div class="social-label"><span>Hot contacts</span><span>View all →</span></div>
+            <div class="contacts"><div class="contact"><div class="face">MC</div><strong>Maya</strong><span>92% fit</span></div><div class="contact"><div class="face">AK</div><strong>Alex</strong><span>At venue</span></div><div class="contact"><div class="face">RP</div><strong>Rina</strong><span>New match</span></div></div>
+          </div>
+          <div class="map"><i></i><i></i><i></i><i></i></div><div class="pin"><b>1</b></div>
+        </div>
+        <p class="caption">Best when the event itself should feel irresistible. Strongest emotional hook, but needs restraint so it still reads as a serious networking product.</p>
+      </section>
+
+      <section class="direction los">
+        <div class="direction-head"><h2>Los Santos Network</h2><p>Sunny city, street posters, crew-building and mission clarity.</p></div>
+        <div class="phone">
+          <div class="top"><button class="hamburger" aria-label="Menu"><i></i></button><div class="avatar">JU</div></div>
+          <div class="screen">
+            <div class="kicker">Active mission · In person</div>
+            <h3>Build your network across the city</h3>
+            <p>Shimo is running the room while you focus on the people worth meeting.</p>
+            <div class="mission"><small>Current event</small><h4>Haunted Hacks</h4><p>3 conversations · 1 new match · meeting point unlocked</p><button class="cta">Open mission</button></div>
+            <div class="social-label"><span>Your contacts</span><span>3 new →</span></div>
+            <div class="contacts"><div class="contact"><div class="face">MC</div><strong>Maya</strong><span>Engineer</span></div><div class="contact"><div class="face">AK</div><strong>Alex</strong><span>Designer</span></div><div class="contact"><div class="face">RP</div><strong>Rina</strong><span>Investor</span></div></div>
+          </div>
+          <div class="map"><i></i><i></i><i></i><i></i></div><div class="pin"><b>1</b></div>
+        </div>
+        <p class="caption">Best for a scalable product identity. Still playful and social, but clearer for daytime conferences, professional events, and investor demos.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
