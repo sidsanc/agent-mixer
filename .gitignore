@@ -14,3 +14,6 @@ dist/
 # Runtime state
 apps/server/.relay-tokens.json
 .durable-actors/
+
+# Local Netlify folder
+.netlify

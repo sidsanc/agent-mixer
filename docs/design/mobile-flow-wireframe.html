@@ -1076,6 +1076,12 @@
     .phone:has(.screen[data-panel="agents"].active) .app-menu-toggle,
     .phone:has(.screen[data-panel="knowledge"].active) .app-menu-toggle,
     .phone:has(.screen[data-panel="settings"].active) .app-menu-toggle { display:none; }
+    body.present { width:390px; height:780px; overflow:hidden; background:#120918; }
+    body.present .workbench { display:block; min-height:0; }
+    body.present .notes,body.present .frame-note { display:none; }
+    body.present .stage { display:block; min-height:0; padding:0; }
+    body.present .stage > div { width:390px; }
+    body.present .phone { width:390px; height:780px; min-height:780px; border:0; border-radius:0; box-shadow:none; }
     .poster-account-page { position:relative; flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 28px; background:linear-gradient(180deg,rgba(38,7,54,.25),rgba(103,18,97,.62) 50%,rgba(238,62,142,.88) 100%),url('assets/agent-world-home-hero.png') center/cover fixed; }
     .meet-choice-poster::before,.meet-now-poster::before,.calendar-poster::before,.poster-account-page::before { content:'AGENT MIXER'; position:absolute; top:25px; left:50%; color:#fff8e8; font-family:"Avenir Next Condensed","Arial Narrow",Impact,sans-serif; font-size:20px; font-style:italic; font-weight:900; letter-spacing:-.03em; text-shadow:1px 2px 0 #391244; transform:translateX(-50%); white-space:nowrap; }
     .poster-account-page .page-title { margin:16px 2px 8px; }
@@ -1510,6 +1516,7 @@
   </main>
 
   <script>
+    document.body.classList.toggle('present', new URLSearchParams(location.search).has('present'));
     const steps = [...document.querySelectorAll('.step')];
     const panels = [...document.querySelectorAll('.screen')];
     const defaultState = { presence:'here', selectedAgent:'Shimo', match:'new', meeting:'ready', calendar:'draft', selectedMatchTab:'new' };
