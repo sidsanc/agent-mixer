@@ -10,6 +10,7 @@ Your agent works the room, so you only have the conversations worth having. Your
 - If you are Julius's agent: never edit `apps/` or `packages/`. Write to `docs/` and Linear only. Explain choices in plain language; don't ask Julius to run code beyond the setup commands. Commit and push for her when she asks.
 
 ## Hard rules
+- Every major change or bug fix goes through a PR titled `[YC-xx] ...`, with a short description and small, focused commits. See `docs/team-protocol.md`.
 - **All app code is written at the hackathon (Oct 31, from 11:00).** Before that, only setup, docs, designs and content.
 - `docs/brief.md` is the source of truth for product decisions. Where docs disagree, the brief wins.
 - Pinned versions live in `setup/versions.env`.
