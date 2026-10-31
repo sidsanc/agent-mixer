@@ -1,0 +1,15 @@
+{
+  "name": "agent-mixer",
+  "private": true,
+  "workspaces": [
+    "apps/server",
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:actors": "cd apps/actors && terse actor dev",
+    "dev:server": "bun --cwd apps/server run dev",
+    "dev:web": "bun --cwd apps/web run dev",
+    "dev:relay": "PATH=/opt/homebrew/opt/node@22/bin:$PATH npx -y @relaycast/engine@8.16.0 --db apps/server/.relaycast.db --port 8787"
+  }
+}

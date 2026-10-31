@@ -16,7 +16,7 @@ check node node --version
 check bun bun --version
 check claude claude --version
 check codex codex --version
-gstack_installed() { [ -d "$HOME/.claude/skills/gstack/bin" ] && echo "installed for Claude"; }
+gstack_installed() { [ -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/gstack/bin" ] && echo "installed for Claude"; }
 check gstack gstack_installed
 gstack_codex() { ls -d "${CODEX_HOME:-$HOME/.codex}"/skills/gstack-* >/dev/null 2>&1 && echo "installed for Codex"; }
 check gstack-codex gstack_codex

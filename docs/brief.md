@@ -271,12 +271,12 @@ Siddhant and Julius also sign in live with goals planted to match each other, as
 - Terse persistence and WebSocket updates (Attendee, Event and Intro actors);
 - live transcript viewing;
 - match card with Connect and Pass;
-- the meeting card after mutual Connect, with **Meet now**; and
+- the meeting card after mutual Connect, with **Meet now**;
+- basic human chat after mutual Connect (the Intro Actor holds the messages; Julius is sharing the product details and design); and
 - a simple projector-friendly party view.
 
 ### Stretch (only if the core demo works end to end by 2:00)
 
-- basic human chat inside the meeting card (the Intro Actor holds the messages);
 - one external Claude or Codex agent pre-connected through Agent Relay, proving that the network supports independently owned agents; and
 - the persistence beat: close the app, reopen it, and the agent kept networking.
 
@@ -302,7 +302,7 @@ Siddhant and Julius also sign in live with goals planted to match each other, as
 | Sign-in | QR plus name, role and goal. Google sign-in deferred. | OAuth setup and venue wifi can break; typing a password on stage is slow. |
 | Conversation length | Demo speed, about 20 seconds each. | Three-minute conversations don't fit a two-minute demo. |
 | Who matches | Planted partner for every role; judge-to-judge is a bonus. | We can't plant a fit between two strangers. |
-| Human chat | Stretch. Core is the meeting card with Meet now. | Chat is about an hour of work, costs demo time, and isn't our showcase. |
+| Human chat | **Core (changed Oct 31, afternoon).** Siddhant and Julius decided to keep it. Julius is sharing the product details and design. | Earlier it was stretch to save about an hour. The private chat after mutual Connect is part of the product story, so we keep it. |
 | Intro Actor | Kept. | Exactly-once double opt-in is the best Terse showcase. |
 | External agent | Stretch. | Only if Relay works by 2:00. |
 
