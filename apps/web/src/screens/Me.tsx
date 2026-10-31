@@ -23,6 +23,13 @@ export function Me() {
   const [toast, setToast] = useState<MatchSummary | null>(null)
   const [celebrate, setCelebrate] = useState<MatchSummary | null>(null)
   const [meetPing, setMeetPing] = useState<string | null>(null)
+  // Only call it "reconnecting" after the stream has been down for a moment.
+  const [offline, setOffline] = useState(false)
+  useEffect(() => {
+    if (mx.connected || mx.backend?.mode !== "live") return setOffline(false)
+    const t = setTimeout(() => setOffline(true), 1500)
+    return () => clearTimeout(t)
+  }, [mx.connected, mx.backend])
 
   useEffect(() => {
     if (!me) nav("/", { replace: true })
@@ -33,7 +40,7 @@ export function Me() {
     if (!me || !mx.backend) return
     if ((mx.backend.mode === "live" && me.startsWith("mock-")) || mx.notFound) {
       myId.clear()
-      nav("/", { replace: true })
+      nav(mx.notFound ? "/?expired=1" : "/", { replace: true })
     }
   }, [me, mx.backend, mx.notFound, nav])
 
@@ -95,10 +102,21 @@ export function Me() {
   return (
     <div className={`app tab-${tab}`}>
       <main className="app-main">
-        {tab === "events" && <EventsTab mx={mx} me={me} onEnter={() => go("agents")} />}
-        {tab === "agents" && <AgentTab mx={mx} me={me} onOpenMatches={() => go("matches")} />}
-        {tab === "matches" && <MatchesTab mx={mx} me={me} open={matchOpen} setOpen={setMatchOpen} onChat={openChat} />}
-        {tab === "chats" && <ChatsTab mx={mx} me={me} open={chatOpen} setOpen={setChatOpen} />}
+        {!mx.attendee ? (
+          <div className="page state-page" role="status">
+            <span className="typing-dots">
+              <i />
+              <i />
+              <i />
+            </span>
+            <strong>Loading your event…</strong>
+            <p>Restoring your agent and conversations.</p>
+          </div>
+        ) : null}
+        {mx.attendee && tab === "events" && <EventsTab mx={mx} me={me} onEnter={() => go("agents")} />}
+        {mx.attendee && tab === "agents" && <AgentTab mx={mx} me={me} onOpenMatches={() => go("matches")} />}
+        {mx.attendee && tab === "matches" && <MatchesTab mx={mx} me={me} open={matchOpen} setOpen={setMatchOpen} onChat={openChat} />}
+        {mx.attendee && tab === "chats" && <ChatsTab mx={mx} me={me} open={chatOpen} setOpen={setChatOpen} />}
       </main>
 
       <nav className="bottom-nav">
@@ -109,7 +127,11 @@ export function Me() {
       </nav>
 
       {mx.backend?.mode === "mock" && <div className="demo-tag">demo data</div>}
-      {mx.backend?.mode === "live" && !mx.connected && <div className="demo-tag warn">reconnecting…</div>}
+      {offline && (
+        <div className="net-banner" role="status">
+          Reconnecting… your agent keeps working; updates resume in a moment.
+        </div>
+      )}
 
       {toast && (
         <button

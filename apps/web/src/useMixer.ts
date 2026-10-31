@@ -83,7 +83,10 @@ export function useMixer(attendeeId: string | null): MixerState {
     load()
     const onPush = (p: ServerPush) => {
       if (p.type === "event") setEvent(p.view)
-      else if (p.type === "attendee" && p.id === attendeeId) setAttendee(p.view)
+      else if (p.type === "attendee" && p.id === attendeeId) {
+        if (!p.view.profile) setNotFound(true)
+        else setAttendee(p.view)
+      }
       else if (p.type === "intro") setIntro(p.state)
     }
     const unsub = backend.subscribe(attendeeId, onPush, (ok) => {

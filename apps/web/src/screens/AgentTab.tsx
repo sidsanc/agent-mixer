@@ -65,7 +65,9 @@ export function AgentTab({ mx, me, onOpenMatches }: { mx: MixerState; me: string
     ? active.length > 1
       ? `${active.length - 1} other ${active.length === 2 ? "chat continues" : "chats continue"} · ${matchesCount} ${matchesCount === 1 ? "match" : "matches"}`
       : `Live conversation · ${matchesCount} ${matchesCount === 1 ? "match" : "matches"} so far`
-    : "Looking for the next agent to talk to"
+    : convs.length === 0
+      ? "Your agent is still exploring · the first conversation starts soon"
+      : "Your agent is still exploring · looking for the next agent to talk to"
 
   const openLogs = (id?: string) => {
     setLogTab(id ?? focusConv?.id ?? convs[0]?.id ?? null)

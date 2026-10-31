@@ -58,7 +58,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
   const it = mx.intros[introId]
   const m = mx.attendee?.matches.find((x) => x.introId === introId)
   const [text, setText] = useState("")
-  const [sending, setSending] = useState(false)
+  const [pending, setPending] = useState<{ id: string; text: string; failed: boolean }[]>([])
   const [showMeet, setShowMeet] = useState(false)
   const end = useRef<HTMLDivElement>(null)
   const lines = it?.chat ?? []
@@ -66,7 +66,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [lines.length, showMeet])
+  }, [lines.length, showMeet, pending.length])
 
   // Requested/accepted opens the panel; declined/expired returns to chat with a short notice.
   const mnStatus = it?.meetNow?.status
@@ -77,18 +77,18 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
     else if (mnStatus === "declined" || mnStatus === "expired") setShowMeet(false)
   }, [mnKey, mnStatus])
 
-  async function send(t: string) {
+  async function send(t: string, retryId?: string) {
     t = t.trim()
     if (!t || !mx.backend) return
-    setSending(true)
+    const id = retryId ?? `p-${Date.now()}`
     setText("")
+    setPending((cur) => (retryId ? cur.map((p) => (p.id === id ? { ...p, failed: false } : p)) : [...cur, { id, text: t, failed: false }]))
     try {
       mx.setIntro(await mx.backend.chat(introId, me, t))
+      setPending((cur) => cur.filter((p) => p.id !== id))
     } catch (err) {
       console.error(err)
-      setText(t)
-    } finally {
-      setSending(false)
+      setPending((cur) => cur.map((p) => (p.id === id ? { ...p, failed: true } : p)))
     }
   }
 
@@ -137,6 +137,8 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
 
       {showMeet && <MeetPanel m={m} it={it} me={me} mx={mx} />}
 
+      {!it && <p className="note">Loading your chat…</p>}
+
       {lines.length === 0 && opener && (
         <section className="opener-box">
           <h4>Suggested opener</h4>
@@ -154,6 +156,23 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
             <p>{l.text}</p>
           </div>
         ))}
+        {pending.map((p) => (
+          <div key={p.id} className={`chat-msg self ${p.failed ? "failed" : "sending"}`}>
+            <p>{p.text}</p>
+            <small className="send-state">
+              {p.failed ? (
+                <>
+                  Not sent ·{" "}
+                  <button className="inline-link" onClick={() => send(p.text, p.id)}>
+                    Retry
+                  </button>
+                </>
+              ) : (
+                "Sending…"
+              )}
+            </small>
+          </div>
+        ))}
         <div ref={end} />
       </div>
 
@@ -165,7 +184,7 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
         }}
       >
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Message ${first(m.other.name)}`} maxLength={500} />
-        <button disabled={!text.trim() || sending} aria-label="Send">
+        <button disabled={!text.trim()} aria-label="Send">
           ↑
         </button>
       </form>

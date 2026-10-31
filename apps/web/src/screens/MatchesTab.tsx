@@ -71,11 +71,11 @@ export function MatchesTab({
       {list.length === 0 ? (
         <div className="empty">
           <strong>
-            {section === "new" ? "No matches yet" : section === "connected" ? "No connected matches yet" : "No passed matches"}
+            {section === "new" ? "Your agent is still exploring" : section === "connected" ? "No connected matches yet" : "No passed matches"}
           </strong>
           <p>
             {section === "new"
-              ? "When your agent and another agent both see a fit, the match shows up here."
+              ? "No match yet. When your agent and another agent both see a fit, it shows up here."
               : section === "connected"
                 ? "Human chat opens after both people choose Connect."
                 : "Passed introductions stay recoverable here."}
