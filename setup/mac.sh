@@ -63,7 +63,7 @@ if want claude; then
   have claude && ok "$(claude --version)" || warn "Claude Code not on PATH; open a new terminal and run: claude --version"
 
   step "gstack for Claude (Garry Tan's YC skills), team mode"
-  if [ ! -d "$HOME/.claude/skills/gstack/.git" ]; then
+  if [ ! -e "$CLAUDE_HOME/skills/gstack" ]; then
     git clone --single-branch --depth 1 "$GSTACK_REPO" "$CLAUDE_HOME/skills/gstack"
   fi
   ( cd "$CLAUDE_HOME/skills/gstack" && ./setup --team -q ) || warn "gstack setup failed; rerun: cd $CLAUDE_HOME/skills/gstack && ./setup --team"

@@ -65,7 +65,7 @@ export CLAUDE_CONFIG_DIR="$CONFIG"
 unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL
 
 step "gstack (Garry Tan's YC skills)"
-if [ ! -d "$CONFIG/skills/gstack/.git" ]; then
+if [ ! -e "$CONFIG/skills/gstack" ]; then
   git clone --single-branch --depth 1 "$GSTACK_REPO" "$CONFIG/skills/gstack"
 fi
 ( cd "$CONFIG/skills/gstack" && ./setup --team -q ) || warn "gstack setup failed; rerun: CLAUDE_CONFIG_DIR=$CONFIG ~/.claude-$NAME/skills/gstack/setup --team"
