@@ -976,6 +976,7 @@
       if (id === 'match') renderMatch();
       if (id === 'chats') renderChats();
       if (id === 'meeting') renderMeeting();
+      if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
     };
     const menuToggle = document.querySelector('.menu-toggle');
     const setMenu = (open) => {
@@ -999,6 +1000,9 @@
       const current = panels.findIndex((panel) => panel.classList.contains('active'));
       show(panels[Math.min(current + 1, panels.length - 1)].dataset.panel);
     }));
+    const requestedScreen = location.hash.slice(1);
+    if (panels.some((panel) => panel.dataset.panel === requestedScreen)) show(requestedScreen);
+    addEventListener('hashchange', () => { const id=location.hash.slice(1); if(panels.some((panel) => panel.dataset.panel === id)) show(id); });
     document.querySelectorAll('.chips').forEach((group) => group.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => {
       group.querySelectorAll('.chip').forEach((item) => item.classList.remove('active'));
       chip.classList.add('active');
