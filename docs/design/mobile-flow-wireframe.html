@@ -447,6 +447,22 @@
     .home-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:22px 0 12px; }
     .home-section-head h4 { margin:0; font-size:16px; }
     .home-section-head button { min-height:44px; color:#c9a7df; font-size:11px; letter-spacing:.04em; }
+    .week-head { display:flex; align-items:end; justify-content:space-between; gap:10px; margin:4px 0 10px; }
+    .week-head h4,.week-head p { margin:0; }
+    .week-head h4 { font-size:17px; }
+    .week-head p { max-width:165px; color:#bca8c6; font-size:9px; line-height:1.35; text-align:right; }
+    .week-strip { display:grid; grid-auto-flow:column; grid-auto-columns:148px; gap:9px; overflow-x:auto; padding:2px 1px 10px; scroll-snap-type:x proximity; scrollbar-width:none; }
+    .week-strip::-webkit-scrollbar { display:none; }
+    .week-event { position:relative; min-height:116px; padding:12px; overflow:hidden; border:1px solid rgba(255,255,255,.16); border-radius:16px; color:#fff8ed; background:linear-gradient(145deg,rgba(91,25,87,.92),rgba(42,14,55,.96)); text-align:left; scroll-snap-align:start; box-shadow:0 8px 18px rgba(0,0,0,.16); }
+    .week-event.active { color:#29142f; border:0; background:linear-gradient(145deg,#fff7df,#ffd761); }
+    .week-event time,.week-event strong,.week-event span { position:relative; z-index:1; display:block; }
+    .week-event time { color:#ff8fd2; font-size:9px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
+    .week-event.active time { color:#a12d70; }
+    .week-event strong { margin-top:9px; font-size:14px; line-height:1.15; }
+    .week-event span { margin-top:8px; color:#d7c3da; font-size:9px; line-height:1.35; }
+    .week-event.active span { color:#684f68; }
+    .week-event .week-fit { display:inline-block; width:max-content; margin-top:9px; padding:4px 7px; border-radius:999px; color:#25132e; background:#65ebe7; font-weight:950; }
+    .week-event .week-live { display:inline-block; width:max-content; margin-top:9px; padding:4px 7px; border-radius:999px; color:white; background:#ef3f91; font-weight:950; text-transform:uppercase; }
     .live-card,.activity-card { width:100%; border:1px solid #ead8d2; color:#15162c; background:linear-gradient(135deg,#fff5ef,#f8e9e8); box-shadow:0 8px 20px rgba(0,0,0,.16); text-align:left; }
     .live-card { position:relative; min-height:182px; padding:16px 18px; border-radius:18px; }
     .mission-row { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:13px; }
@@ -801,6 +817,129 @@
     .create-poster-agent strong { display:block; font-size:16px; font-style:italic; }
     .create-poster-agent span { display:block; margin-top:3px; color:#f2daec; font-size:11px; line-height:1.35; }
     .choose-continue { width:100%; min-height:64px; margin-top:28px; border:0; border-radius:23px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 0 0 2px #ff4bd0,0 12px 28px rgba(25,8,32,.3); }
+    .phone:has(.screen[data-panel="create-agent"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="create-agent"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .create-agent-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 34px; background:linear-gradient(180deg,rgba(35,7,48,.32),rgba(73,13,72,.48) 50%,rgba(221,54,129,.84) 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .create-agent-poster .poster-brand { margin-bottom:8px; }
+    .create-agent-subtitle { margin:0 0 62px; color:#fff4e5; font-size:13px; font-style:italic; text-align:right; }
+    .create-agent-head { max-width:330px; margin:0 0 58px; }
+    .create-agent-head h2 { margin:0; font-size:38px; font-style:italic; line-height:1.02; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .create-agent-head::after { content:''; display:block; width:170px; height:7px; margin:14px 0 0 4px; border-radius:100%; background:#ff2a9c; transform:rotate(-2deg); }
+    .create-paths { display:grid; gap:15px; }
+    .create-path { display:grid; grid-template-columns:62px 1fr 28px; gap:15px; align-items:center; width:100%; min-height:92px; padding:16px; border:1px solid rgba(255,150,231,.9); border-radius:22px; color:#fff7df; background:linear-gradient(135deg,rgba(91,22,87,.86),rgba(67,18,74,.72)); text-align:left; box-shadow:inset 0 1px rgba(255,255,255,.13),0 8px 22px rgba(38,5,44,.18); backdrop-filter:blur(11px); }
+    .create-path:first-child { border-color:#ff4fc2; box-shadow:0 0 0 1px #ff4fc2,inset 0 1px rgba(255,255,255,.14),0 8px 24px rgba(38,5,44,.24); }
+    .create-path-icon { display:grid; place-items:center; width:62px; height:62px; border-right:1px solid #e47ac7; font-size:36px; line-height:1; }
+    .create-path strong { font-size:20px; font-style:italic; line-height:1.12; }
+    .create-path .arrow { font-size:30px; font-weight:400; }
+    .create-path:active { transform:scale(.985); }
+    .create-agent-manual { margin-top:18px; padding:16px; border:1px solid rgba(255,210,242,.55); border-radius:20px; background:rgba(55,12,63,.88); backdrop-filter:blur(12px); }
+    .create-agent-manual label { color:#fff7df; }
+    .create-agent-manual input,.create-agent-manual textarea { color:#29162f; background:#fff8df; }
+    .create-agent-manual .primary { border:0; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); }
+    .phone:has(.screen[data-panel="import"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="import"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .import-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(42,8,54,.36),rgba(52,8,57,.78) 44%,#cd2f7a 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .import-head { margin:72px 0 54px; }
+    .import-head h2 { max-width:330px; margin:0; font-size:38px; font-style:italic; line-height:1.02; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .import-head::after { content:''; display:block; width:180px; height:7px; margin-top:12px; border-radius:100%; background:#ff2a9c; transform:rotate(-2deg); }
+    .source-group { display:grid; grid-template-columns:46px 1fr; gap:16px; align-items:center; padding:17px 0; border-bottom:1px solid #ff5fc2; }
+    .source-group:last-of-type { border-bottom:0; }
+    .source-type { display:grid; place-items:center; width:44px; height:44px; border-right:1px solid #ff71ca; color:#fff; font-size:26px; }
+    .source-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .source-logo { display:grid; place-items:center; aspect-ratio:1; min-width:0; border:2px solid transparent; border-radius:17px; color:#fff; background:rgba(38,9,44,.35); font-size:24px; font-weight:950; box-shadow:0 7px 17px rgba(26,5,31,.2); }
+    .source-logo.selected { border-color:#6ff5ef; box-shadow:0 0 0 2px #ff45c9,0 8px 20px rgba(22,5,28,.3); transform:translateY(-2px); }
+    .source-logo.linkedin { background:#0a76d5; }
+    .source-logo.github { color:#fff; background:#07070a; }
+    .source-logo.instagram { background:linear-gradient(135deg,#7d2bd1,#f32773,#ffb42d); }
+    .source-logo.notion { color:#111; background:#fff; }
+    .source-logo.drive { background:linear-gradient(135deg,#14a85b 0 34%,#ffd449 34% 66%,#2574df 66%); }
+    .source-logo.dropbox { background:#1473e6; }
+    .source-logo.obsidian { background:linear-gradient(135deg,#9c70ff,#5e2bca); }
+    .source-logo.openai { color:#24212b; background:#fff; }
+    .source-logo.claude { color:#fff; background:#f26b2b; }
+    .source-logo.gemini { background:linear-gradient(135deg,#4378ef,#cb5bde,#4ee39a); }
+    .source-logo.perplexity { background:#191326; }
+    .import-actions { margin-top:64px; }
+    .import-actions .generate { width:100%; min-height:64px; border:0; border-radius:23px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:16px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 0 0 2px #ff4bd0,0 12px 28px rgba(25,8,32,.3); }
+    .import-actions .skip { width:100%; min-height:50px; margin-top:14px; border:1px solid #fff; border-radius:999px; color:#fff; background:transparent; font-size:15px; }
+    .import-selection { min-height:20px; margin:14px 0 0; color:#f8deef; font-size:11px; text-align:center; }
+    .phone:has(.screen[data-panel="review-knowledge"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="review-knowledge"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .review-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(38,7,48,.25),rgba(81,14,74,.48) 48%,rgba(218,49,126,.9) 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .review-kicker { margin:18px 0 32px; color:#fff4e7; font-size:14px; font-style:italic; }
+    .review-head { max-width:350px; margin-bottom:30px; }
+    .review-head h2 { margin:0; font-size:35px; font-style:italic; line-height:.98; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .review-head::after { content:''; display:block; width:165px; height:7px; margin:14px 0 0 4px; border-radius:100%; background:#ff2a9c; transform:rotate(-2deg); }
+    .review-card { margin-top:16px; padding:18px; border-radius:22px; }
+    .review-card.public { color:#32163b; background:#fff7df; }
+    .review-card.private { color:#fff7e8; border:1px solid rgba(255,187,238,.55); background:linear-gradient(145deg,rgba(68,16,74,.94),rgba(39,12,57,.92)); }
+    .review-title { display:grid; grid-template-columns:34px 1fr; gap:10px; align-items:start; }
+    .review-title > span { font-size:28px; line-height:1; }
+    .review-title h3 { margin:0; font-size:21px; text-shadow:none; }
+    .review-title p { grid-column:2; margin:4px 0 8px; color:#725e76; font-size:12px; font-style:italic; line-height:1.4; }
+    .review-card.private .review-title p { color:#ddc6e0; }
+    .review-fact { display:grid; grid-template-columns:27px 1fr auto; gap:9px; align-items:center; padding:12px 0; border-top:1px solid rgba(83,48,85,.18); font-size:12px; font-weight:800; }
+    .review-card.private .review-fact { border-color:rgba(255,255,255,.16); }
+    .review-fact > span:first-child { font-size:20px; text-align:center; }
+    .review-fact button,.review-fact b { min-width:76px; padding:7px 10px; border:0; border-radius:999px; font-size:11px; font-weight:900; text-align:center; }
+    .review-fact button.approved { color:#2c1834; background:#d8f397; }
+    .review-fact button.editing { color:#39183f; background:#e9c6ef; }
+    .review-fact b { color:#fff; background:rgba(255,255,255,.12); }
+    .review-fact [contenteditable="true"] { padding:5px 7px; border-radius:8px; outline:2px solid #ff6fcf; background:#fff; }
+    .review-confirm { width:100%; min-height:62px; margin-top:24px; border:1px solid #ff82d5; border-radius:999px; color:#fff7df; background:linear-gradient(90deg,#cc1975,#f52691); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 0 0 2px rgba(255,107,207,.28),0 12px 28px rgba(32,7,40,.28); }
+    .phone:has(.screen[data-panel="profile"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="profile"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .ready-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(37,7,49,.32),rgba(81,14,74,.54) 45%,rgba(222,55,130,.92) 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .ready-poster .poster-progress { margin:18px 46px 18px; }
+    .ready-kicker { display:inline-block; margin:0 0 16px; padding:7px 12px; border:1px solid #ffdc37; border-radius:999px; color:#ffdc37; font-size:12px; font-style:italic; font-weight:950; }
+    .ready-head h2 { margin:0; font-size:38px; font-style:italic; line-height:.98; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .ready-head::after { content:''; display:block; width:170px; height:7px; margin:13px 0 0 4px; border-radius:100%; background:#ff2a9c; transform:rotate(-2deg); }
+    .ready-lede { margin:14px 0 18px; color:#fff4e7; font-size:14px; font-style:italic; }
+    .ready-list { display:grid; gap:8px; }
+    .ready-row { display:grid; grid-template-columns:28px 38px 1fr auto; gap:9px; align-items:center; padding:11px 12px; border:1px solid rgba(255,161,227,.34); border-radius:16px; color:#fff8e7; background:rgba(55,13,64,.76); backdrop-filter:blur(10px); }
+    .ready-row .done { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; color:#fff; background:#58b83e; font-size:12px; font-weight:950; }
+    .ready-row .ready-icon { display:grid; place-items:center; width:38px; height:38px; border-right:1px solid #ff60c5; font-size:24px; }
+    .ready-row strong,.ready-row small { display:block; }
+    .ready-row strong { font-size:15px; font-style:italic; }
+    .ready-row small { margin-top:2px; color:#dbc8dd; font-size:10px; line-height:1.25; }
+    .ready-row button { border:0; color:#62f1eb; background:transparent; font-size:11px; font-weight:950; }
+    .ready-matching { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; padding:18px 2px; border-bottom:1px solid rgba(255,255,255,.45); }
+    .ready-matching > span { font-size:28px; }
+    .ready-matching strong,.ready-matching small { display:block; }
+    .ready-matching strong { font-size:17px; font-style:italic; }
+    .ready-matching small { margin-top:2px; color:#e8d1e3; font-size:11px; }
+    .ready-toggle { position:relative; width:52px; height:29px; border:0; border-radius:999px; background:#58e6e2; }
+    .ready-toggle::after { content:''; position:absolute; top:3px; right:3px; width:23px; height:23px; border-radius:50%; background:#fff; transition:.18s; }
+    .ready-toggle.off { background:#6b526e; }
+    .ready-toggle.off::after { right:26px; }
+    .ready-limits-title { margin:14px 0 10px; color:#ffdf3b; font-size:12px; font-weight:950; text-transform:uppercase; }
+    .ready-limits { display:grid; grid-template-columns:1fr 1.25fr 1.2fr; gap:9px; }
+    .ready-limit { min-height:42px; border:1px solid rgba(255,255,255,.58); border-radius:999px; color:#fff6df; background:rgba(76,18,72,.38); font-size:11px; font-weight:900; }
+    .ready-limit.active { color:#29142f; border-color:#62efea; background:#62efea; }
+    .ready-start { width:100%; min-height:62px; margin-top:24px; border:0; border-radius:24px; color:#3c1644; background:#fff7df; font-size:18px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 10px 24px rgba(35,6,42,.28); }
+    .phone:has(.screen[data-panel="matches"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="matches"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .matches-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(37,7,49,.28),rgba(88,14,77,.52) 48%,rgba(225,60,135,.92) 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .matches-heading { display:flex; align-items:flex-end; justify-content:space-between; margin:68px 0 24px; }
+    .matches-heading h2 { margin:0; font-size:42px; font-style:italic; line-height:1; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .matches-count { display:grid; place-items:center; width:56px; height:56px; border-radius:16px; color:#2b1531; background:#ffda4b; font-size:24px; font-weight:950; box-shadow:0 8px 18px rgba(34,7,40,.22); }
+    .matches-tabs { display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+    .matches-tabs button { min-height:44px; border:1px solid rgba(255,178,231,.65); border-radius:999px; color:#fff5df; background:rgba(72,17,72,.42); font-size:14px; font-weight:850; }
+    .matches-tabs button.active { color:#2d1733; border-color:#61eee9; background:#61eee9; }
+    .poster-match-list { display:grid; gap:14px; }
+    .poster-match-card { position:relative; display:grid; grid-template-columns:82px minmax(0,1fr) auto; gap:12px; align-items:center; width:100%; min-height:112px; padding:14px; border:0; border-radius:22px; color:#2b1632; background:#fff7df; text-align:left; box-shadow:0 10px 24px rgba(35,7,42,.22); }
+    .poster-match-photo { width:82px; height:82px; border-radius:16px; background-image:url('assets/agent-conversation-portraits.png'); background-repeat:no-repeat; background-size:300% auto; background-position:0 30%; box-shadow:inset 0 0 0 1px rgba(61,22,67,.12); }
+    .poster-match-photo.alex { background-position:50% 30%; }
+    .poster-match-photo.rina { background-position:100% 30%; }
+    .poster-match-copy strong,.poster-match-copy span { display:block; }
+    .poster-match-copy strong { padding-right:42px; font-size:17px; line-height:1.15; }
+    .poster-match-copy > span { margin-top:5px; color:#806783; font-size:12px; line-height:1.3; }
+    .review-pill { display:inline-block !important; width:max-content; margin-top:11px !important; padding:6px 13px; border-radius:999px; color:#3c1943 !important; background:#edb5ef; font-size:12px !important; font-weight:900; }
+    .poster-match-score { position:absolute; top:14px; right:16px; padding:7px 11px; border-radius:999px; color:#25132e; background:#61eee9; font-size:14px; font-weight:950; }
+    .poster-match-arrow { font-size:30px; font-weight:700; }
+    .poster-empty { padding:22px; border-radius:20px; color:#32163a; background:#fff7df; box-shadow:0 10px 24px rgba(35,7,42,.2); }
+    .poster-empty strong { display:block; font-size:17px; }
+    .poster-empty p { margin:6px 0 0; color:#806783; font-size:12px; line-height:1.4; }
   </style>
 </head>
 <body>
@@ -862,6 +1001,12 @@
                 </div>
               </section>
               <section class="home-feed">
+                <div class="week-head"><h4>Your week</h4><p>Shimo scouts the room before you decide where to go.</p></div>
+                <div class="week-strip" aria-label="This week’s events">
+                  <button class="week-event active" data-next="welcome"><time>Today · Live</time><strong>Haunted Hacks</strong><span>Founder Lounge · Real-Time AI</span><span class="week-live">Agent networking</span></button>
+                  <article class="week-event"><time>Thu · 7:00 PM</time><strong>YC Founder Dinner</strong><span>3 high-fit people expected</span><span class="week-fit">92% top fit</span></article>
+                  <article class="week-event"><time>Sat · 2:00 PM</time><strong>AI Builders SF</strong><span>2 product collaborators</span><span class="week-fit">86% top fit</span></article>
+                </div>
                 <div class="live-card"><div class="mission-row"><span class="mission-label">Haunted Hacks · live</span><button class="text-button" data-next="recap">View recap →</button></div><button data-next="live" style="position:static;width:100%;padding:0;border:0;color:inherit;background:transparent;text-align:left"><h4><span data-agent-name>Shimo</span> is networking</h4><p class="match-live">1 new match</p><span class="agent-faces"><i class="mini-face">MC</i><i class="mini-face">AK</i><i class="mini-face">RP</i></span><span class="card-arrow">›</span><span class="live-metrics"><b>▣ &nbsp;3 active conversations</b><b>▥ &nbsp;Strongest fit 94%</b></span></button></div>
                 <div class="home-section-head"><h4>Recent activity</h4><button class="text-button" data-next="recap">View all →</button></div>
                 <div class="activity-list">
@@ -952,16 +1097,16 @@
           </section>
 
           <section class="screen" data-panel="create-agent">
-            <div class="status-bar"></div>
-            <header class="topline"><button class="flow-back" data-next="choose-agent" aria-label="Back">←</button><span class="hint">Create a long-lived agent</span></header>
-            <div class="content grow">
-              <h2>How do you want to start?</h2>
-              <div class="choice-stack">
-                <button class="choice-card" data-next="import"><strong>Import my professional profile</strong><span>LinkedIn, GitHub, website, or résumé. Imported material stays private until you approve public fields.</span></button>
-                <button class="choice-card" data-create-mode="manual"><strong>Set up manually</strong><span>Fastest option: name, role, one-sentence goal, and optional bio.</span></button>
-                <button class="choice-card"><strong>Connect an external agent</strong><span>Verify an Agent Relay address and grant access only for this event.</span></button>
+            <div class="create-agent-poster">
+              <div class="poster-brand"><strong>Agent Mixer</strong></div>
+              <p class="create-agent-subtitle">Create a long-lived agent</p>
+              <div class="create-agent-head"><h2>How do you<br>want to start?</h2></div>
+              <div class="create-paths">
+                <button class="create-path" data-next="import"><span class="create-path-icon">▣</span><strong>Import my<br>professional profile</strong><span class="arrow">→</span></button>
+                <button class="create-path" data-create-mode="manual"><span class="create-path-icon">✎</span><strong>Set up manually</strong><span class="arrow">→</span></button>
+                <button class="create-path" data-next="settings"><span class="create-path-icon">↗</span><strong>Connect an<br>external agent</strong><span class="arrow">→</span></button>
               </div>
-              <div data-manual-fields hidden>
+              <div class="create-agent-manual" data-manual-fields hidden>
                 <label>Agent name</label><input value="Shimo" />
                 <label>Your role</label><div class="chips"><button class="chip">Founder</button><button class="chip">Investor</button><button class="chip active">Designer</button><button class="chip">Engineer</button><button class="chip">Other</button></div>
                 <label>Public bio <span style="font-weight:400;color:var(--muted)">· optional</span></label><textarea>I design social products and agent experiences.</textarea>
@@ -971,49 +1116,55 @@
           </section>
 
           <section class="screen" data-panel="import">
-            <div class="status-bar"></div>
-            <header class="topline"><button class="flow-back" data-next="create-agent" aria-label="Back">←</button><span class="hint">Private by default</span></header>
-            <div class="content grow">
-              <h2>Import what your agent should know</h2>
-              <p class="lede">We use these sources to propose a profile. Nothing becomes public automatically.</p>
-              <div class="source-actions"><button class="secondary" data-source>LinkedIn</button><button class="secondary" data-source>GitHub</button><button class="secondary" data-source>Personal website</button><button class="secondary" data-source>Résumé / PDF</button></div>
-              <div class="knowledge-block private"><h4>Import boundary</h4><p>Raw source files remain private. Agent Mixer extracts candidate public facts, shows where each fact came from, and waits for your approval.</p></div>
-              <div class="list-row" data-import-status><strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p></div>
+            <div class="import-poster">
+              <div class="poster-brand"><strong>Agent Mixer</strong></div>
+              <div class="import-head"><h2>Import your knowledge</h2></div>
+              <div class="source-group"><div class="source-type">▣</div><div class="source-grid"><button class="source-logo linkedin" data-source="LinkedIn" aria-label="LinkedIn">in</button><button class="source-logo github" data-source="GitHub" aria-label="GitHub">◖◗</button><button class="source-logo" data-source="X" aria-label="X">𝕏</button><button class="source-logo instagram" data-source="Instagram" aria-label="Instagram">◎</button></div></div>
+              <div class="source-group"><div class="source-type">▱</div><div class="source-grid"><button class="source-logo notion" data-source="Notion" aria-label="Notion">N</button><button class="source-logo drive" data-source="Google Drive" aria-label="Google Drive">△</button><button class="source-logo dropbox" data-source="Dropbox" aria-label="Dropbox">◆</button><button class="source-logo obsidian" data-source="Obsidian" aria-label="Obsidian">⬙</button></div></div>
+              <div class="source-group"><div class="source-type">✦</div><div class="source-grid"><button class="source-logo openai" data-source="ChatGPT" aria-label="ChatGPT">◉</button><button class="source-logo claude" data-source="Claude" aria-label="Claude">✺</button><button class="source-logo gemini" data-source="Gemini" aria-label="Gemini">✦</button><button class="source-logo perplexity" data-source="Perplexity" aria-label="Perplexity">✣</button></div></div>
+              <p class="import-selection" data-import-status>Select one or more sources. Imported material stays private until you approve public facts.</p>
+              <div class="import-actions"><button class="generate" data-next="review-knowledge">Generate my knowledge base →</button><button class="skip" data-next="review-knowledge">Skip for now</button></div>
             </div>
-            <div class="screen-footer"><button class="primary" data-next="review-knowledge" style="width:100%">Generate draft profile</button><button class="secondary" data-next="review-knowledge" style="width:100%;margin-top:7px">Skip import</button></div>
           </section>
 
           <section class="screen" data-panel="review-knowledge">
-            <div class="status-bar"></div>
-            <header class="topline"><button class="flow-back" data-next="import" aria-label="Back">←</button><span class="hint">Review before publishing</span></header>
-            <div class="content grow">
-              <h2>Approve your agent’s knowledge</h2>
-              <div class="knowledge-block"><h4>Public knowledge</h4><p>Other agents may query or quote only the facts you approve here.</p><div class="source-item"><span>Product designer building agent experiences</span><strong>Approve</strong></div><div class="source-item"><span>Portfolio · julius.design</span><strong>Approve</strong></div><div class="source-item"><span>Interested in technical collaborators</span><strong>Edit</strong></div></div>
-              <div class="knowledge-block private"><h4>Private knowledge</h4><p>Used only for internal judgment. It can never be quoted, summarized, paraphrased, implied, or sent through Agent Relay.</p><div class="source-item"><span>Imported source documents</span><strong>Private</strong></div><div class="source-item"><span>Preferences and deal-breakers</span><strong>Private</strong></div></div>
-              <div class="privacy-gate">Only approved public knowledge, your confirmed event goal, and the current conversation may leave your agent.</div>
+            <div class="review-poster">
+              <div class="poster-brand"><strong>Agent Mixer</strong></div>
+              <p class="review-kicker">Review before publishing</p>
+              <div class="review-head"><h2>Approve your<br>agent’s knowledge</h2></div>
+              <section class="review-card public">
+                <div class="review-title"><span>◎</span><div><h3>Public Knowledge</h3><p>Other agents may query or quote only the facts you approve here.</p></div></div>
+                <div class="review-fact"><span>✦</span><span data-knowledge-copy>Product designer building agent experiences</span><button class="approved" data-knowledge-action="approve">Approve ✓</button></div>
+                <div class="review-fact"><span>▱</span><span data-knowledge-copy>Portfolio · julius.design</span><button class="approved" data-knowledge-action="approve">Approve ✓</button></div>
+                <div class="review-fact"><span>♧</span><span data-knowledge-copy>Interested in technical collaborators</span><button class="editing" data-knowledge-action="edit">✎ Edit</button></div>
+              </section>
+              <section class="review-card private">
+                <div class="review-title"><span>▢</span><div><h3>Private Knowledge</h3><p>Used only for internal judgment. It can never be quoted, summarized, or shared through Agent Relay.</p></div></div>
+                <div class="review-fact"><span>▤</span><span>Imported source documents</span><b>▢ Private</b></div>
+                <div class="review-fact"><span>☷</span><span>Preferences and deal-breakers</span><b>▢ Private</b></div>
+              </section>
+              <button class="review-confirm" data-next="profile">Confirm &amp; continue →</button>
             </div>
-            <div class="screen-footer"><button class="primary" data-next="profile" style="width:100%">Approve and use this agent</button></div>
           </section>
 
           <section class="screen" data-panel="profile">
-            <div class="status-bar"></div>
-            <div class="content">
-              <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
-              <span class="event-tag">Haunted Hacks · Step 3 of 3</span>
-              <h2>Ready for Agent World</h2>
-              <p class="lede">Confirm exactly what Shimo will carry into this event.</p>
-              <div class="setup-checklist">
-                <div class="setup-check"><i>✓</i><span><strong>Representative</strong><br><small data-selected-agent-copy>Shimo · one agent for this event</small></span><button class="text-button" data-next="choose-agent">Change</button></div>
-                <div class="setup-check"><i>✓</i><span><strong>Shareable goal</strong><br><small>Technical collaborator for durable multi-agent products</small></span><button class="text-button" data-next="goal">Edit</button></div>
-                <div class="setup-check"><i>✓</i><span><strong>Private intent</strong><br><small>Available for internal decisions only</small></span><button class="text-button" data-next="goal">Review</button></div>
-                <div class="setup-check"><i>✓</i><span><strong>Attendance</strong><br><small data-attendance-copy>You are at the venue · Meet now enabled</small></span><button class="text-button" data-next="goal">Change</button></div>
+            <div class="ready-poster">
+              <div class="poster-brand"><strong>Agent Mixer</strong></div>
+              <div class="poster-progress"><i class="on"></i><i class="on"></i><i></i></div>
+              <span class="ready-kicker">Haunted Hacks · Step 3 of 3</span>
+              <div class="ready-head"><h2>Ready for<br>Agent World</h2></div>
+              <p class="ready-lede">Confirm exactly what Shimo will carry into this event.</p>
+              <div class="ready-list">
+                <div class="ready-row"><span class="done">✓</span><span class="ready-icon">♙</span><span><strong>Representative</strong><small data-selected-agent-copy>Shimo · one agent for this event</small></span><button data-next="choose-agent">Change</button></div>
+                <div class="ready-row"><span class="done">✓</span><span class="ready-icon">◎</span><span><strong>Shareable goal</strong><small>Technical collaborator for durable multi-agent products</small></span><button data-next="goal">Edit</button></div>
+                <div class="ready-row"><span class="done">✓</span><span class="ready-icon">▢</span><span><strong>Private intent</strong><small>Available for internal decisions only</small></span><button data-next="goal">Review</button></div>
+                <div class="ready-row"><span class="done">✓</span><span class="ready-icon">▣</span><span><strong>Attendance</strong><small data-attendance-copy>You are at the venue · Meet now enabled</small></span><button data-next="goal">Change</button></div>
               </div>
-              <div class="switch-row" style="margin-left:0;margin-right:0"><div><strong>Automatic matching</strong><span>Let Shimo propose strong matches</span></div><button class="switch" aria-label="Automatic matching on"></button></div>
-              <label>Conversation limits</label>
-              <div class="chips"><button class="chip active">3 at once</button><button class="chip">3 min normally</button><button class="chip">6 min high fit</button></div>
-              <p class="hint">You can watch full transcripts. The only live control is End conversation.</p>
+              <div class="ready-matching"><span>☼</span><span><strong>Automatic matching</strong><small>Let Shimo propose strong matches</small></span><button class="ready-toggle" data-ready-toggle aria-label="Automatic matching on" aria-pressed="true"></button></div>
+              <p class="ready-limits-title">Conversation limits</p>
+              <div class="ready-limits"><button class="ready-limit active">3 at once</button><button class="ready-limit">3 min normally</button><button class="ready-limit">6 min high fit</button></div>
+              <button class="ready-start next">Start networking →</button>
             </div>
-            <div class="screen-footer"><button class="primary next" style="width:100%">Start networking</button></div>
           </section>
 
           <section class="screen" data-panel="live">
@@ -1021,17 +1172,18 @@
           </section>
 
           <section class="screen" data-panel="matches">
-            <div class="status-bar"></div>
-            <header class="app-header"><h3>Matches</h3><button class="icon-button" aria-label="New matches" data-match-badge>3</button></header>
-            <div class="tabs" data-match-tabs><button class="tab active" data-match-tab="new">New · 3</button><button class="tab" data-match-tab="connected">Connected · 0</button><button class="tab" data-match-tab="passed">Passed · 0</button></div>
-            <div class="match-list" data-match-list="new">
-              <button class="list-row match-card" data-person="maya"><span class="match-score">94%</span><strong>Maya Chen · Engineer</strong><p>Strong cofounder fit · Here now · New 1 min ago</p><span class="status-pill">Review match</span></button>
-              <button class="list-row match-card" data-person="alex"><span class="match-score">81%</span><strong>Alex Kim · Designer</strong><p>Potential product collaborator · Agent only</p><span class="status-pill">Review match</span></button>
-              <button class="list-row match-card" data-person="rina"><span class="match-score">78%</span><strong>Rina Patel · Investor</strong><p>Interested in event infrastructure · Here now</p><span class="status-pill">Review match</span></button>
+            <div class="matches-poster">
+              <div class="poster-brand"><strong>Agent Mixer</strong></div>
+              <div class="matches-heading"><h2>Matches</h2><span class="matches-count" aria-label="New matches" data-match-badge>3</span></div>
+              <div class="matches-tabs" data-match-tabs><button class="active" data-match-tab="new">New · 3</button><button data-match-tab="connected">Connected · 0</button><button data-match-tab="passed">Passed · 0</button></div>
+              <div class="poster-match-list" data-match-list="new">
+                <button class="poster-match-card" data-person="maya"><span class="poster-match-photo"></span><span class="poster-match-copy"><strong>Maya Chen · Engineer</strong><span>Strong co-founder fit · Here now</span><span class="review-pill">Review match</span></span><span class="poster-match-score">94%</span><span class="poster-match-arrow">›</span></button>
+                <button class="poster-match-card" data-person="alex"><span class="poster-match-photo alex"></span><span class="poster-match-copy"><strong>Alex Kim · Designer</strong><span>Potential product collaborator</span><span class="review-pill">Review match</span></span><span class="poster-match-score">81%</span><span class="poster-match-arrow">›</span></button>
+                <button class="poster-match-card" data-person="rina"><span class="poster-match-photo rina"></span><span class="poster-match-copy"><strong>Rina Patel · Investor</strong><span>Interested in event infrastructure</span><span class="review-pill">Review match</span></span><span class="poster-match-score">78%</span><span class="poster-match-arrow">›</span></button>
+              </div>
+              <div class="poster-match-list" data-match-list="connected" hidden><div class="poster-empty"><strong>No connected matches yet</strong><p>Human chat opens after both people choose Connect.</p></div></div>
+              <div class="poster-match-list" data-match-list="passed" hidden><div class="poster-empty"><strong>No passed matches</strong><p>Passed introductions will stay recoverable here.</p></div></div>
             </div>
-            <div class="match-list" data-match-list="connected" hidden><div class="list-row"><strong>No connected matches yet</strong><p>Human chat opens after both people choose Connect.</p></div></div>
-            <div class="match-list" data-match-list="passed" hidden><div class="list-row"><strong>No passed matches</strong><p>Passed introductions will stay recoverable here.</p></div></div>
-            <nav class="bottom-nav"><button data-next="home">Events</button><button data-next="agents">Agents</button><button class="active">Matches</button><button data-next="chats">Chats</button></nav>
           </section>
 
           <section class="screen" data-panel="match">
@@ -1238,20 +1390,57 @@
       document.querySelector('[data-manual-fields]').hidden=false;
       document.querySelector('[data-manual-fields]').scrollIntoView({block:'start',behavior:'smooth'});
     });
+    document.querySelector('[data-ready-toggle]').addEventListener('click', (event) => {
+      const button=event.currentTarget;
+      const enabled=button.classList.toggle('off')===false;
+      button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      button.setAttribute('aria-label', `Automatic matching ${enabled ? 'on' : 'off'}`);
+    });
+    document.querySelectorAll('[data-knowledge-action]').forEach((button) => button.addEventListener('click', () => {
+      const copy=button.closest('.review-fact').querySelector('[data-knowledge-copy]');
+      if(button.dataset.knowledgeAction==='approve'){
+        const approved=button.classList.toggle('approved');
+        button.textContent=approved?'Approve ✓':'Approve';
+        button.setAttribute('aria-pressed', approved ? 'true' : 'false');
+        return;
+      }
+      const editing=copy.contentEditable!=='true';
+      copy.contentEditable=editing?'true':'false';
+      button.textContent=editing?'✓ Done':'✎ Edit';
+      button.classList.toggle('approved', !editing);
+      button.classList.toggle('editing', editing);
+      if(editing){ copy.focus(); document.execCommand('selectAll',false,null); }
+    }));
     document.querySelectorAll('[data-source]').forEach((button) => button.addEventListener('click', () => {
-      button.classList.toggle('primary'); button.classList.toggle('secondary');
-      const selected=[...document.querySelectorAll('[data-source].primary')].map((item)=>item.textContent.trim());
-      document.querySelector('[data-import-status]').innerHTML=selected.length?`<strong>${selected.length} source${selected.length>1?'s':''} ready</strong><p>${selected.join(' · ')} · Raw data remains private until review.</p>`:'<strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p>';
+      button.classList.toggle('selected');
+      button.setAttribute('aria-pressed', button.classList.contains('selected') ? 'true' : 'false');
+      const selected=[...document.querySelectorAll('[data-source].selected')].map((item)=>item.dataset.source);
+      document.querySelector('[data-import-status]').textContent=selected.length
+        ? `${selected.length} source${selected.length>1?'s':''} selected: ${selected.join(' · ')}. Raw data stays private until review.`
+        : 'Select one or more sources. Imported material stays private until you approve public facts.';
     }));
 
     const renderMatches = () => {
       const tab = prototypeState.selectedMatchTab;
       document.querySelectorAll('[data-match-tab]').forEach((item) => item.classList.toggle('active', item.dataset.matchTab === tab));
       document.querySelectorAll('[data-match-list]').forEach((list) => { list.hidden = list.dataset.matchList !== tab; });
+      const mayaCard=document.querySelector('[data-person="maya"]');
+      if(mayaCard) mayaCard.hidden=prototypeState.match!=='new';
+      const newCount=prototypeState.match==='new'?3:2;
+      const connectedCount=prototypeState.match==='connected'?1:0;
+      const passedCount=prototypeState.match==='passed'?1:0;
+      document.querySelector('[data-match-badge]').textContent=newCount;
+      document.querySelector('[data-match-tab="new"]').textContent=`New · ${newCount}`;
+      document.querySelector('[data-match-tab="connected"]').textContent=`Connected · ${connectedCount}`;
+      document.querySelector('[data-match-tab="passed"]').textContent=`Passed · ${passedCount}`;
       const connected = document.querySelector('[data-match-list="connected"]');
       const passed = document.querySelector('[data-match-list="passed"]');
-      if (prototypeState.match === 'connected') connected.innerHTML = '<button class="list-row match-card" data-next="chat"><strong>Maya Chen · Engineer</strong><p>Both connected · Human chat open</p><span class="status-pill">Connected</span></button>';
-      if (prototypeState.match === 'passed') passed.innerHTML = '<button class="list-row match-card" data-restore-match><strong>Maya Chen · Engineer</strong><p>Passed just now</p><span class="status-pill">Restore match</span></button>';
+      connected.innerHTML = prototypeState.match === 'connected'
+        ? '<button class="poster-match-card" data-next="chat"><span class="poster-match-photo"></span><span class="poster-match-copy"><strong>Maya Chen · Engineer</strong><span>Both connected · Human chat open</span><span class="review-pill">Open chat</span></span><span class="poster-match-score">94%</span><span class="poster-match-arrow">›</span></button>'
+        : '<div class="poster-empty"><strong>No connected matches yet</strong><p>Human chat opens after both people choose Connect.</p></div>';
+      passed.innerHTML = prototypeState.match === 'passed'
+        ? '<button class="poster-match-card" data-restore-match><span class="poster-match-photo"></span><span class="poster-match-copy"><strong>Maya Chen · Engineer</strong><span>Passed just now</span><span class="review-pill">Restore match</span></span><span class="poster-match-score">94%</span><span class="poster-match-arrow">›</span></button>'
+        : '<div class="poster-empty"><strong>No passed matches</strong><p>Passed introductions will stay recoverable here.</p></div>';
       connected.querySelectorAll('[data-next]').forEach((button) => button.addEventListener('click', () => show(button.dataset.next)));
       passed.querySelectorAll('[data-restore-match]').forEach((button) => button.addEventListener('click', () => { prototypeState.match='new'; prototypeState.selectedMatchTab='new'; saveState(); renderMatches(); }));
     };
