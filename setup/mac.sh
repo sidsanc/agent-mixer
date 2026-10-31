@@ -4,6 +4,7 @@
 #   ./setup/mac.sh --role product --agent codex    # Julius on Codex: Codex, design skills, Linear
 #   --agent claude (default) | codex | both        # which coding agent to set up
 # Safe to re-run: every step skips what's already installed.
+# Separate Claude profile (e.g. claude-sid on a shared Mac): CLAUDE_CONFIG_DIR=~/.claude-sid ./setup/mac.sh ...
 set -euo pipefail
 
 ROLE=""
@@ -36,6 +37,8 @@ warn() { printf '    \033[33mwarning:\033[0m %s\n' "$1"; WARNINGS+=("$1"); }
 have() { command -v "$1" >/dev/null 2>&1; }
 want() { [ "$AGENT" = "$1" ] || [ "$AGENT" = "both" ]; }
 WARNINGS=()
+# Claude's config folder; a separate profile sets CLAUDE_CONFIG_DIR (see setup/claude-profile/).
+CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 step "Homebrew"
 if ! have brew; then
@@ -61,9 +64,9 @@ if want claude; then
 
   step "gstack for Claude (Garry Tan's YC skills), team mode"
   if [ ! -d "$HOME/.claude/skills/gstack/.git" ]; then
-    git clone --single-branch --depth 1 "$GSTACK_REPO" "$HOME/.claude/skills/gstack"
+    git clone --single-branch --depth 1 "$GSTACK_REPO" "$CLAUDE_HOME/skills/gstack"
   fi
-  ( cd "$HOME/.claude/skills/gstack" && ./setup --team -q ) || warn "gstack setup failed; rerun: cd ~/.claude/skills/gstack && ./setup --team"
+  ( cd "$CLAUDE_HOME/skills/gstack" && ./setup --team -q ) || warn "gstack setup failed; rerun: cd $CLAUDE_HOME/skills/gstack && ./setup --team"
   ok "gstack installed for Claude"
 
   step "Claude Code plugins"
@@ -81,7 +84,7 @@ if want codex; then
   step "gstack for Codex (Garry Tan's YC skills)"
   # gstack keeps its checkout outside ~/.codex and installs gstack-* skills into ~/.codex/skills.
   GSTACK_CODEX_DIR="$HOME/gstack"
-  [ -d "$HOME/.claude/skills/gstack/.git" ] && GSTACK_CODEX_DIR="$HOME/.claude/skills/gstack"
+  [ -d "$CLAUDE_HOME/skills/gstack/.git" ] && GSTACK_CODEX_DIR="$CLAUDE_HOME/skills/gstack"
   if [ ! -d "$GSTACK_CODEX_DIR/.git" ]; then
     git clone --single-branch --depth 1 "$GSTACK_REPO" "$GSTACK_CODEX_DIR"
   fi
@@ -93,9 +96,13 @@ step "Design and frontend skills"
 # Same sources as Siddhant's machine (from ~/.agents/.skill-lock.json)
 SKILL_SOURCES=(pbakaus/impeccable Leonxlnx/taste-skill emilkowalski/skills vercel-labs/skills)
 SKILL_AGENTS=()
-want claude && SKILL_AGENTS+=(claude-code)
+# The skills CLI writes to ~/.claude; a separate profile gets its skills from its kit instead.
+if want claude; then
+  if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then ok "Claude: skipped (profile $CLAUDE_HOME brings its own skills)"
+  else SKILL_AGENTS+=(claude-code); fi
+fi
 want codex && SKILL_AGENTS+=(codex)
-for a in "${SKILL_AGENTS[@]}"; do
+for a in ${SKILL_AGENTS[@]+"${SKILL_AGENTS[@]}"}; do
   for src in "${SKILL_SOURCES[@]}"; do
     npx -y skills add "$src" -g -a "$a" -y >/dev/null 2>&1 \
       && ok "$src ($a)" || warn "skills from $src: run 'npx skills add $src -g -a $a'"
