@@ -7,7 +7,7 @@ import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
 import { llmProvider, llmStats } from "./agents/llm"
-import { meetNowTtl } from "./store/types"
+import { maskIntro, meetNowTtl } from "./store/types"
 import { speed } from "./agents/engine"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
@@ -198,10 +198,11 @@ async function signup(req: Request) {
   return json({ attendeeId: id })
 }
 
-/** Contacts only leave the server once both sides chose Connect, and only to the two of them. */
+/** Contacts only leave the server once both sides chose Connect, and only to the two of them.
+ *  The other side's Pass is never shown (silent decline): maskIntro turns it into null / "pending". */
 function redactIntro(s: any, as: string | null) {
   if (!s) return s
-  const out = structuredClone(s)
+  const out = structuredClone(maskIntro(s, as))
   if (out.meeting && (out.status !== "connected" || !as || (as !== out.a && as !== out.b))) out.meeting.contacts = {}
   if (!as || (as !== out.a && as !== out.b)) out.chat = []
   return out
