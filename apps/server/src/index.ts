@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import type { Attendance, Choice, MeetAction, Profile, Role, ServerPush } from "@agent-mixer/shared"
-import { AVATAR_IDS, EVENT_NAME, ROLES } from "@agent-mixer/shared"
+import { AVATAR_IDS, EVENT_ID, EVENT_NAME, ROLES } from "@agent-mixer/shared"
 import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
@@ -173,8 +173,33 @@ function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 20) || "guest"
 }
 
+// ---------- events today (Partiful-style flow, docs/architecture.md) ----------
+const LIVE_EVENT_ID = process.env.EVENT_ID || EVENT_ID
+const EVENTS = [
+  { id: LIVE_EVENT_ID, name: EVENT_NAME, when: "Today, 11:00 to 21:00", where: "YC, San Francisco", blurb: "Agents work the room while you build. Real-time AI hackathon, Halloween edition.", live: true },
+  { id: "sf-ai-tinkerers", name: "AI Tinkerers SF: Agents Demo Night", when: "Today, 18:30", where: "SoMa, San Francisco", blurb: "Ten-minute demos of agent stacks, no slides.", live: false },
+  { id: "sf-founders-coffee", name: "Founders and Funders Coffee", when: "Today, 08:30", where: "Hayes Valley, San Francisco", blurb: "Early-stage founders meet pre-seed and seed investors.", live: false },
+  { id: "sf-infra-meetup", name: "Inference Infra Meetup", when: "Today, 19:00", where: "Mission Bay, San Francisco", blurb: "GPUs, serving and latency budgets, with pizza.", live: false },
+  { id: "sf-design-ai", name: "Design x AI Mixer", when: "Today, 20:00", where: "Mission, San Francisco", blurb: "Designers and engineers building AI-native products.", live: false },
+]
+
 const roleIds = new Set(ROLES.map((r) => r.id))
 
+function parseAttendance(v: unknown): Attendance {
+  const attendance = String(v ?? "onsite") as Attendance
+  if (attendance !== "onsite" && attendance !== "agent-only") throw new HttpError(400, "attendance must be onsite or agent-only")
+  return attendance
+}
+
+/** Joins the live Event actor. Idempotent: Event.join upserts by id. */
+async function joinLive(p: Profile) {
+  if ("ensureAgent" in engine.transport && engine.transport.ensureAgent) {
+    await engine.transport.ensureAgent(p).catch((e) => console.error(`[relay] ensureAgent ${p.id} failed`, e))
+  }
+  await store.joinEvent(p)
+}
+
+/** Sign up once: creates the attendee only. `join: true` keeps the old one-step flow (sign up + join live event). */
 async function signup(req: Request) {
   const b = await body(req)
   const name = String(b.name ?? "").trim().slice(0, 60)
@@ -182,12 +207,12 @@ async function signup(req: Request) {
   const role = String(b.role ?? "other") as Role
   if (!name || !goal) throw new HttpError(400, "name and goal are required")
   if (!roleIds.has(role)) throw new HttpError(400, `role must be one of ${[...roleIds].join(", ")}`)
-  const attendance = String(b.attendance ?? "onsite") as Attendance
-  if (attendance !== "onsite" && attendance !== "agent-only") throw new HttpError(400, "attendance must be onsite or agent-only")
+  const attendance = parseAttendance(b.attendance)
   const avatar = AVATAR_IDS.find((a) => a === b.avatar)
+  const agentName = String(b.agentName ?? "").trim().slice(0, 40) || `${name.split(" ")[0]}'s agent`
   const id = `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`
   const p: Profile = {
-    id, name, agentName: `${name.split(" ")[0]}'s agent`, role,
+    id, name, agentName, role,
     bio: String(b.bio ?? "").trim().slice(0, 200),
     shareableGoal: goal,
     attendance,
@@ -196,12 +221,36 @@ async function signup(req: Request) {
     contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at ${EVENT_NAME}`,
   }
   await store.createAttendee(p)
-  if ("ensureAgent" in engine.transport && engine.transport.ensureAgent) {
-    await engine.transport.ensureAgent(p).catch((e) => console.error(`[relay] ensureAgent ${id} failed`, e))
+  const joined = b.join === true || (typeof b.eventId === "string" && b.eventId === LIVE_EVENT_ID)
+  if (joined) await joinLive(p)
+  console.log(`[signup] ${name} (${role}) -> ${id}${joined ? " (joined)" : ""}`)
+  return json({ attendeeId: id, joined })
+}
+
+async function listEvents(attendee: string | null) {
+  const roster = attendee ? (await store.eventView()).roster : []
+  const inLive = !!attendee && roster.some((r) => r.id === attendee)
+  return EVENTS.map((e) => ({ ...e, ...(attendee ? { joined: e.live && inLive } : {}) }))
+}
+
+async function joinEventRoute(eventId: string, req: Request) {
+  const b = await body(req)
+  const ev = EVENTS.find((e) => e.id === eventId)
+  if (!ev) throw new HttpError(404, "event not found")
+  if (!ev.live) throw new HttpError(409, "this event is not live yet")
+  const attendeeId = String(b.attendeeId ?? "")
+  const p = attendeeId ? await store.getProfile(attendeeId) : null
+  if (!p) throw new HttpError(404, "attendee not found")
+  if (b.attendance !== undefined) {
+    const attendance = parseAttendance(b.attendance)
+    if (attendance !== p.attendance) {
+      p.attendance = attendance
+      await store.createAttendee(p) // overwrites the profile; matches and conversations stay
+    }
   }
-  await store.joinEvent(p)
-  console.log(`[signup] ${name} (${role}) -> ${id}`)
-  return json({ attendeeId: id })
+  await joinLive(p)
+  console.log(`[join] ${p.name} -> ${ev.id}`)
+  return json({ ok: true, eventId: ev.id, attendeeId: p.id, joined: true })
 }
 
 /** Contacts only leave the server once both sides chose Connect, and only to the two of them.
@@ -230,6 +279,8 @@ Bun.serve({
       }
       if (req.method === "GET" && path === "/api/observer") return json({ url: relayRef?.observerUrl ?? null })
       if (req.method === "POST" && path === "/api/signup") return await signup(req)
+      if (req.method === "GET" && path === "/api/events") return json(await listEvents(url.searchParams.get("attendee")))
+      if (req.method === "POST" && (r = m(/^\/api\/events\/([^/]+)\/join$/))) return await joinEventRoute(decodeURIComponent(r[1]), req)
       if (req.method === "GET" && (r = m(/^\/api\/attendee\/([^/]+)$/))) {
         const view = await store.attendeeView(r[1])
         return view.profile ? json(view) : json({ error: "attendee not found" }, 404)
