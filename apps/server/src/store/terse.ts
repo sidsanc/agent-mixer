@@ -17,7 +17,9 @@ import { MEETING_POINTS, meetNowTtl, toPublic, type Store } from "./types"
 const EVENT_POLL_MS = Number(process.env.TERSE_EVENT_POLL_MS ?? 1500)
 
 const att = (id: string) => actors.Attendee.get(id)
-const ev = () => actors.Event.get(EVENT_ID)
+// EVENT_ID env picks the Event actor, so the demo and e2e runs never share a roster.
+const EVENT = process.env.EVENT_ID || EVENT_ID
+const ev = () => actors.Event.get(EVENT)
 const intro = (id: string) => actors.Intro.get(id)
 
 /** Cheap real read used at startup to decide between Terse and the memory fallback. */
@@ -213,7 +215,7 @@ export async function prepareWebsocket(kind: "attendee" | "event" | "intro", id:
   const auth: ActorAuthorization =
     kind === "attendee" ? { actorName: "Attendee", actorId: id, metadata: { attendeeId: viewer } }
     : kind === "intro" ? { actorName: "Intro", actorId: id, metadata: { attendeeId: viewer } }
-    : { actorName: "Event", actorId: EVENT_ID, metadata: { viewer } }
+    : { actorName: "Event", actorId: EVENT, metadata: { viewer } }
   const grant = await ActorProxy.handle(auth)
   return { websocketUrl: grant.websocketUrl }
 }
