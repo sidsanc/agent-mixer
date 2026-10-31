@@ -6,7 +6,7 @@ import { ROLES } from "@agent-mixer/shared"
 import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
-import { llmProvider } from "./agents/llm"
+import { llmProvider, llmStats } from "./agents/llm"
 import { speed } from "./agents/engine"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
@@ -215,7 +215,7 @@ Bun.serve({
     try {
       let r: RegExpMatchArray | null
       if (req.method === "GET" && path === "/api/health") {
-        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), speed: speed() })
+        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), llmStats, speed: speed() })
       }
       if (req.method === "GET" && path === "/api/observer") return json({ url: relayRef?.observerUrl ?? null })
       if (req.method === "POST" && path === "/api/signup") return await signup(req)

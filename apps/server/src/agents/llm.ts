@@ -11,14 +11,39 @@ export function llmProvider(): LlmProvider {
 }
 
 let anthropic: Anthropic | null = null
-const TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 15000)
+// A turn never waits longer than this for the model; on timeout the caller uses the scripted line.
+const TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 6000)
+// After repeated failures (bad key, outage) skip the LLM for a while so turns stay fast.
+const BREAKER_FAILS = 3
+const BREAKER_MS = Number(process.env.LLM_BREAKER_MS ?? 30000)
+let fails = 0
+let openUntil = 0
 
-/** Returns the model's text, or null on any failure (caller falls back to the script). */
+export const llmStats = { calls: 0, ok: 0, failed: 0, timedOut: 0, skipped: 0 }
+
+/** Returns the model's text, or null on any failure or timeout (caller falls back to the script). */
 export async function complete(system: string, user: string, maxTokens = 200): Promise<string | null> {
+  if (llmProvider() === "scripted") return null
+  if (Date.now() < openUntil) { llmStats.skipped++; return null }
+  llmStats.calls++
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<null>((res) => { timer = setTimeout(() => { llmStats.timedOut++; res(null) }, TIMEOUT_MS) })
+  const out = await Promise.race([call(system, user, maxTokens), timeout]).finally(() => clearTimeout(timer))
+  if (out) { llmStats.ok++; fails = 0; return out }
+  llmStats.failed++
+  if (++fails >= BREAKER_FAILS) {
+    openUntil = Date.now() + BREAKER_MS
+    fails = 0
+    console.warn(`[llm] ${BREAKER_FAILS} failures in a row, using scripted lines for ${BREAKER_MS / 1000}s`)
+  }
+  return null
+}
+
+async function call(system: string, user: string, maxTokens: number): Promise<string | null> {
   const provider = llmProvider()
   try {
     if (provider === "anthropic") {
-      anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: TIMEOUT_MS, maxRetries: 1 })
+      anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: TIMEOUT_MS, maxRetries: 0 })
       const res = await anthropic.messages.create({
         model: process.env.LLM_MODEL || "claude-haiku-5-5",
         max_tokens: maxTokens,
