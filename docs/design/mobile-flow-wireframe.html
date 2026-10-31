@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agent Mixer — Vice City Social app</title>
+  <title>Agent Mixer — Haunted Hacks demo</title>
   <style>
     :root {
       --ink: #17151f;
@@ -708,6 +708,99 @@
     .phone .stat span { color:#735f75; }
     .phone .calendar-states span { color:#f4dced; border-color:rgba(255,255,255,.24); }
     .game-frame { width:100%; height:100%; border:0; background:#16091f; }
+    .flow-summary { display:grid; gap:8px; margin:14px 0; }
+    .flow-summary .list-row { margin:0; padding:12px; }
+    .choice-stack { display:grid; gap:10px; margin:12px 0; }
+    .choice-card { width:100%; padding:14px; border:1px solid var(--line); border-radius:16px; color:var(--ink); background:var(--surface); text-align:left; }
+    .choice-card strong,.choice-card span { display:block; }
+    .choice-card span { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .choice-card.active { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(86,232,222,.2); }
+    .privacy-gate { margin:12px 0; padding:12px; border:1px solid rgba(255,219,89,.42); border-radius:14px; background:rgba(255,219,89,.1); font-size:12px; line-height:1.45; }
+    .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .source-actions button { min-height:46px; }
+    .setup-checklist { display:grid; gap:9px; margin:14px 0; }
+    .setup-check { display:grid; grid-template-columns:24px 1fr auto; gap:8px; align-items:center; padding:11px; border-radius:13px; background:var(--surface); }
+    .setup-check i { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; color:#211227; background:var(--cyan); font-style:normal; font-weight:900; }
+    .setup-check small { color:var(--muted); }
+    .screen[data-panel="welcome"] .button-row { position:static; flex:0 0 auto; padding:20px 18px 34px; background:#8d235f; }
+    .global-back { position:absolute; top:18px; left:68px; z-index:26; display:none; place-items:center; width:42px; height:42px; border:1px solid rgba(255,255,255,.25); border-radius:13px; color:#fff; background:rgba(38,12,48,.72); backdrop-filter:blur(10px); font-size:22px; font-weight:900; box-shadow:0 8px 20px rgba(20,4,26,.2); }
+    .phone.show-global-back .global-back { display:grid; }
+    .phone:has(.screen[data-panel="welcome"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="welcome"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.72); }
+    .event-intro { flex:0 0 auto; width:100%; min-height:100%; padding:82px 18px 20px; background:linear-gradient(180deg,rgba(40,7,52,.22) 0%,rgba(52,10,60,.55) 35%,rgba(55,11,61,.93) 62%,#8d235f 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .event-intro-hero { text-align:center; text-shadow:0 2px 14px rgba(32,6,40,.55); }
+    .event-intro-hero .eyebrow { display:inline-block; padding:5px 13px; border-radius:8px; color:#ffb6e9; background:rgba(255,157,225,.2); font-size:10px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
+    .event-intro-hero h2 { margin:12px 0 3px; font-size:36px; font-style:italic; letter-spacing:-.02em; }
+    .event-intro-hero .subbrand { margin:0; color:#ff8fd3; font-size:11px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; }
+    .event-intro-hero .intro-line { max-width:310px; margin:16px auto 20px; font-size:15px; line-height:1.4; }
+    .event-facts { display:grid; grid-template-columns:repeat(3,1fr); margin:22px 0 16px; text-align:center; }
+    .event-fact { padding:0 5px; border-right:1px solid rgba(255,255,255,.28); }
+    .event-fact:last-child { border-right:0; }
+    .event-fact b,.event-fact span { display:block; }
+    .event-fact b { margin-top:5px; font-size:12px; }
+    .event-fact span { margin-top:3px; color:#f3d7ef; font-size:10px; line-height:1.25; }
+    .event-fact .fact-icon { color:#ffb3e7; font-size:22px; line-height:1; }
+    .intro-card { margin-top:12px; padding:16px; border:1px solid rgba(255,156,227,.42); border-radius:19px; background:linear-gradient(145deg,rgba(45,13,57,.86),rgba(114,28,89,.74)); box-shadow:inset 0 1px rgba(255,255,255,.1),0 12px 28px rgba(23,4,28,.22); backdrop-filter:blur(12px); }
+    .intro-card h4 { margin:0 0 7px; font-size:16px; }
+    .intro-card p { margin:0; color:#f3dced; font-size:12px; line-height:1.45; }
+    .intro-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:9px; }
+    .intro-step { position:relative; min-height:78px; padding:11px 4px; border-radius:13px; background:rgba(255,255,255,.1); text-align:center; }
+    .intro-step:not(:last-child)::after { content:'→'; position:absolute; right:-8px; top:50%; z-index:2; color:#ff9ee3; transform:translateY(-50%); }
+    .intro-step b,.intro-step span { display:block; }
+    .intro-step b { color:#ff9ee3; font-size:21px; }
+    .intro-step span { margin-top:6px; font-size:10px; line-height:1.2; }
+    .agent-does { display:grid; gap:6px; margin-top:8px; }
+    .agent-does span { position:relative; padding-left:24px; color:#f8e7f4; font-size:11px; line-height:1.4; }
+    .agent-does span::before { content:'✓'; position:absolute; left:0; display:grid; place-items:center; width:16px; height:16px; border-radius:50%; color:#fff; background:rgba(255,255,255,.16); font-weight:900; }
+    .phone:has(.screen[data-panel="goal"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="goal"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .goal-poster { flex:0 0 auto; width:100%; min-height:100%; padding:74px 18px 28px; background:linear-gradient(180deg,rgba(38,7,48,.08),rgba(55,9,57,.3) 31%,rgba(68,10,63,.88) 58%,#d43478 100%),url('assets/agent-world-home-hero-v2.png') 58% top/cover fixed; }
+    .goal-brand { text-align:center; text-shadow:0 2px 8px #2b082d; }
+    .goal-brand strong,.goal-brand span { display:block; }
+    .goal-brand strong { font-size:17px; font-style:italic; text-transform:uppercase; }
+    .goal-brand span { color:#ff56b5; font-size:13px; font-weight:950; font-style:italic; letter-spacing:.04em; text-transform:uppercase; }
+    .goal-step { position:absolute; top:18px; right:18px; padding:8px 12px; border-radius:13px; color:#321435; background:#ffd95d; font-size:11px; font-weight:950; text-align:center; text-transform:uppercase; box-shadow:0 5px 16px rgba(42,8,46,.25); }
+    .goal-step span { display:block; margin-top:3px; letter-spacing:5px; }
+    .goal-head { max-width:280px; margin-top:34px; text-shadow:2px 3px 0 #35133d,0 4px 20px rgba(30,5,31,.35); }
+    .goal-head h2 { margin:0; font-size:37px; font-style:italic; line-height:.95; transform:skew(-4deg); }
+    .goal-head p { margin:16px 0 0; font-size:14px; font-weight:700; line-height:1.35; }
+    .poster-field { margin-top:18px; padding:0 12px 14px; border:1px solid rgba(255,221,121,.85); border-radius:4px 18px 18px; background:rgba(42,11,50,.78); backdrop-filter:blur(10px); }
+    .poster-label { display:inline-flex; align-items:center; gap:8px; min-height:38px; margin:-10px 0 10px -12px; padding:0 16px; border-radius:4px 4px 10px 0; background:linear-gradient(100deg,#ff2c8e,#7e185d); box-shadow:0 4px 0 rgba(255,119,187,.3); font-size:14px; font-style:italic; font-weight:950; text-transform:uppercase; transform:skew(-4deg); }
+    .poster-field textarea { min-height:88px; margin:0; border:0; color:#26172c; background:#fff8df; font-size:14px; font-weight:700; line-height:1.35; }
+    .poster-field .hint { margin:9px 2px 0; color:#f7dbea; font-size:11px; font-style:italic; }
+    .poster-field .privacy-gate { margin:10px 0 0; color:#fff4e4; background:rgba(255,255,255,.06); }
+    .attendance-title { margin:20px 0 10px; font-size:15px; font-style:italic; font-weight:950; text-transform:uppercase; }
+    .goal-poster .presence-options { gap:10px; }
+    .goal-poster .presence-card { min-height:112px; border-color:rgba(255,236,192,.65); color:#fff5e3; background:rgba(73,17,69,.72); }
+    .goal-poster .presence-card.active { border-color:#64f3ed; color:#2b1730; background:linear-gradient(145deg,#fff7cf,#ffd45b); box-shadow:0 0 0 2px #5af1ee; }
+    .goal-poster .goal-next { width:100%; min-height:64px; margin-top:22px; border:0; border-radius:22px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 12px 28px rgba(25,8,32,.25); }
+    .phone:has(.screen[data-panel="choose-agent"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="choose-agent"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .choose-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(42,8,54,.3),rgba(59,10,61,.56) 42%,#b82972 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .poster-brand { text-align:center; text-shadow:0 2px 8px #2b082d; }
+    .poster-brand strong,.poster-brand span { display:block; }
+    .poster-brand strong { font-size:22px; font-style:italic; text-transform:uppercase; }
+    .poster-brand span { margin-top:-4px; color:#ff36a4; font-size:19px; font-style:italic; font-weight:950; text-transform:uppercase; }
+    .poster-progress { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:18px 0 20px; }
+    .poster-progress i { height:6px; border-radius:999px; background:rgba(255,255,255,.65); }
+    .poster-progress i.on { background:#69f1ec; }
+    .choose-kicker { display:inline-block; padding:8px 14px; border:1px solid #ffd45b; border-radius:999px; color:#ffd45b; font-size:12px; font-style:italic; font-weight:950; }
+    .choose-head h2 { max-width:310px; margin:18px 0 8px; font-size:39px; font-style:italic; line-height:.95; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .choose-head p { margin:0 0 18px; font-size:14px; line-height:1.4; }
+    .poster-agent { display:grid; grid-template-columns:68px 1fr 38px; gap:12px; align-items:center; width:100%; margin-top:12px; padding:13px; border:2px solid transparent; border-radius:18px; color:#2b1730; background:#fff8df; text-align:left; }
+    .poster-agent.active { border-color:#69f1ec; background:linear-gradient(135deg,#fff9df,#ffd85e); box-shadow:0 0 0 2px #ff43ca,0 10px 24px rgba(37,5,43,.25); }
+    .poster-avatar { width:68px; height:68px; border-radius:14px; background:url('assets/agent-world-home-hero-v2.png') 54% 62%/260% auto no-repeat; }
+    .poster-avatar.robot { background-image:url('assets/agent-conversation-portraits.png'); background-position:100% 30%; background-size:300% auto; }
+    .poster-agent strong { display:block; font-size:18px; font-style:italic; }
+    .poster-agent p { margin:3px 0 0; color:#4d3452; font-size:12px; line-height:1.3; }
+    .poster-agent .pick { display:grid; place-items:center; width:32px; height:32px; border:2px solid #421747; border-radius:50%; font-size:0; }
+    .poster-agent.active .pick { color:#fff; background:#421747; font-size:17px; }
+    .poster-agent .recommended { display:inline-block; margin-top:6px; padding:3px 8px; border-radius:999px; color:#3e1746; background:#ff92d1; font-size:10px; font-weight:900; }
+    .create-poster-agent { display:grid; grid-template-columns:54px 1fr; gap:12px; align-items:center; width:100%; margin-top:14px; padding:14px; border:2px dashed #ff8fe0; border-radius:18px; color:#fff6e9; background:rgba(71,14,67,.68); text-align:left; }
+    .create-poster-agent b { display:grid; place-items:center; width:54px; height:54px; border:1px solid #d349ba; border-radius:14px; font-size:30px; }
+    .create-poster-agent strong { display:block; font-size:16px; font-style:italic; }
+    .create-poster-agent span { display:block; margin-top:3px; color:#f2daec; font-size:11px; line-height:1.35; }
+    .choose-continue { width:100%; min-height:64px; margin-top:28px; border:0; border-radius:23px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 0 0 2px #ff4bd0,0 12px 28px rgba(25,8,32,.3); }
   </style>
 </head>
 <body>
@@ -716,21 +809,28 @@
   <main class="workbench">
     <aside class="notes">
       <h1>Agent Mixer</h1>
-      <p>Vice City Social app prototype. Click each step to review the complete participant journey.</p>
+      <p>Haunted Hacks: Real-Time AI Edition demo. Click each step to review the complete participant journey.</p>
       <nav class="step-list" aria-label="Prototype screens">
         <button class="step" aria-selected="true" data-screen="home"><span>1</span><span>Home</span></button>
-        <button class="step" aria-selected="false" data-screen="agents"><span>2</span><span>My agents</span></button>
-        <button class="step" aria-selected="false" data-screen="knowledge"><span>3</span><span>Knowledge</span></button>
-        <button class="step" aria-selected="false" data-screen="welcome"><span>4</span><span>Event welcome</span></button>
-        <button class="step" aria-selected="false" data-screen="profile"><span>5</span><span>Event setup</span></button>
-        <button class="step" aria-selected="false" data-screen="live"><span>6</span><span>Agent live</span></button>
-        <button class="step" aria-selected="false" data-screen="matches"><span>7</span><span>Matches</span></button>
-        <button class="step" aria-selected="false" data-screen="match"><span>8</span><span>Match detail</span></button>
-        <button class="step" aria-selected="false" data-screen="chats"><span>9</span><span>Chats</span></button>
-        <button class="step" aria-selected="false" data-screen="chat"><span>10</span><span>Human chat</span></button>
-        <button class="step" aria-selected="false" data-screen="meeting"><span>11</span><span>Meet / schedule</span></button>
-        <button class="step" aria-selected="false" data-screen="recap"><span>12</span><span>Event recap</span></button>
-        <button class="step" aria-selected="false" data-screen="settings"><span>13</span><span>Integrations</span></button>
+        <button class="step" aria-selected="false" data-screen="welcome"><span>2</span><span>Event introduction</span></button>
+        <button class="step" aria-selected="false" data-screen="goal"><span>3</span><span>Event goal</span></button>
+        <button class="step" aria-selected="false" data-screen="choose-agent"><span>4</span><span>Choose agent</span></button>
+        <button class="step" aria-selected="false" data-screen="create-agent"><span>5</span><span>Create agent</span></button>
+        <button class="step" aria-selected="false" data-screen="import"><span>6</span><span>Import sources</span></button>
+        <button class="step" aria-selected="false" data-screen="review-knowledge"><span>7</span><span>Review knowledge</span></button>
+        <button class="step" aria-selected="false" data-screen="profile"><span>8</span><span>Ready to join</span></button>
+        <button class="step" aria-selected="false" data-screen="live"><span>9</span><span>Agent World</span></button>
+        <button class="step" aria-selected="false" data-screen="matches"><span>10</span><span>Matches</span></button>
+        <button class="step" aria-selected="false" data-screen="match"><span>11</span><span>Mutual Connect</span></button>
+        <button class="step" aria-selected="false" data-screen="chats"><span>12</span><span>Human connections</span></button>
+        <button class="step" aria-selected="false" data-screen="chat"><span>13</span><span>Human chat</span></button>
+        <button class="step" aria-selected="false" data-screen="meet-choice"><span>14</span><span>Choose meeting</span></button>
+        <button class="step" aria-selected="false" data-screen="meeting"><span>15</span><span>Meet now</span></button>
+        <button class="step" aria-selected="false" data-screen="calendar"><span>16</span><span>Schedule later</span></button>
+        <button class="step" aria-selected="false" data-screen="recap"><span>17</span><span>Event recap</span></button>
+        <button class="step" aria-selected="false" data-screen="agents"><span>18</span><span>Agent library</span></button>
+        <button class="step" aria-selected="false" data-screen="knowledge"><span>19</span><span>Knowledge settings</span></button>
+        <button class="step" aria-selected="false" data-screen="settings"><span>20</span><span>Integrations</span></button>
       </nav>
       <button class="secondary" data-reset-demo style="width:100%;margin-top:14px">Reset demo state</button>
     </aside>
@@ -739,6 +839,7 @@
       <div>
         <div class="phone" aria-label="Mobile preview">
           <button class="app-menu-toggle" aria-label="Open app navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+          <button class="global-back" aria-label="Back to previous screen">←</button>
           <button class="app-menu-scrim" aria-label="Close app navigation"></button>
           <nav class="app-drawer" aria-label="Main app navigation">
             <h3>Agent Mixer</h3>
@@ -757,11 +858,11 @@
                   <p class="home-kicker">Agent Mixer</p>
                   <h2 class="home-manifesto">Your agent<br>works<br>the room.</h2>
                   <p class="home-tagline">You only have the conversations worth having.</p>
-                  <button class="hero-enter" data-next="live">Enter Agent World <span>→</span></button>
+                  <button class="hero-enter" data-next="welcome">Enter Haunted Hacks <span>→</span></button>
                 </div>
               </section>
               <section class="home-feed">
-                <div class="live-card"><div class="mission-row"><span class="mission-label">Mission active</span><button class="text-button" data-next="recap">View recap →</button></div><button data-next="live" style="position:static;width:100%;padding:0;border:0;color:inherit;background:transparent;text-align:left"><h4><span data-agent-name>Shimo</span> is networking</h4><p class="match-live">1 new match</p><span class="agent-faces"><i class="mini-face">MC</i><i class="mini-face">AK</i><i class="mini-face">RP</i></span><span class="card-arrow">›</span><span class="live-metrics"><b>▣ &nbsp;3 active conversations</b><b>▥ &nbsp;Strongest fit 94%</b></span></button></div>
+                <div class="live-card"><div class="mission-row"><span class="mission-label">Haunted Hacks · live</span><button class="text-button" data-next="recap">View recap →</button></div><button data-next="live" style="position:static;width:100%;padding:0;border:0;color:inherit;background:transparent;text-align:left"><h4><span data-agent-name>Shimo</span> is networking</h4><p class="match-live">1 new match</p><span class="agent-faces"><i class="mini-face">MC</i><i class="mini-face">AK</i><i class="mini-face">RP</i></span><span class="card-arrow">›</span><span class="live-metrics"><b>▣ &nbsp;3 active conversations</b><b>▥ &nbsp;Strongest fit 94%</b></span></button></div>
                 <div class="home-section-head"><h4>Recent activity</h4><button class="text-button" data-next="recap">View all →</button></div>
                 <div class="activity-list">
                   <button class="activity-card" data-next="matches"><span class="activity-thumb"></span><span><strong>New connection unlocked</strong><p>Meet Maya · 94% technical cofounder fit</p></span><span class="card-arrow">›</span></button>
@@ -791,51 +892,126 @@
           </section>
 
           <section class="screen" data-panel="welcome">
-            <div class="status-bar"></div>
-            <div class="content grow">
-              <div class="brand"><span class="brand-mark">AM</span> Agent Mixer</div>
-              <span class="event-tag">Haunted Hacks · Today</span>
-              <div class="source-row">Event link from <span class="source-badge">Luma</span><span class="source-badge">Partiful</span></div>
-              <h2>Your agent works the room.</h2>
-              <p class="lede">Meet the right people without working every corner of the event yourself.</p>
-              <div class="agent-scene" aria-label="Diagram of one agent talking to several agents">
-                <span class="connection one"></span><span class="connection two"></span><span class="connection three"></span>
-                <span class="agent-dot primary">You</span><span class="agent-dot a">AK</span><span class="agent-dot b">MP</span><span class="agent-dot c">JL</span><span class="agent-dot d">RS</span>
+            <div class="event-intro">
+              <div class="event-intro-hero">
+                <span class="eyebrow">Event</span>
+                <h2>Haunted Hacks</h2>
+                <p class="subbrand">Real-Time AI · Agent Mixer</p>
+                <p class="intro-line">Your AI agent meets, talks, and finds the people worth knowing for you.</p>
               </div>
+              <div class="event-facts">
+                <div class="event-fact"><span class="fact-icon">▣</span><b>Oct 31, 2026</b><span>11:00 AM–6:00 PM</span></div>
+                <div class="event-fact"><span class="fact-icon">⌖</span><b>San Francisco</b><span>In person</span></div>
+                <div class="event-fact"><span class="fact-icon">♧</span><b>Open link</b><span>No approval needed</span></div>
+              </div>
+              <div class="intro-card"><h4>What is this event?</h4><p>A real-time AI hackathon hosted by Terse and AgentRelay. Agent Mixer helps you discover collaborators while you build.</p></div>
+              <div class="intro-card"><h4>How Agent Mixer works</h4><div class="intro-steps"><div class="intro-step"><b>◎</b><span>Set your goal</span></div><div class="intro-step"><b>◉</b><span>Choose an agent</span></div><div class="intro-step"><b>◇</b><span>Agents meet</span></div><div class="intro-step"><b>♡</b><span>You connect</span></div></div></div>
+              <div class="intro-card"><h4>What your agent will do</h4><div class="agent-does"><span>Introduce only your approved public profile and event goal</span><span>Hold several relevant one-to-one conversations</span><span>Use private knowledge to judge fit without revealing it</span><span>Bring you the best matches, evidence, and an opener</span></div></div>
+              <div class="intro-card"><h4>Do I need to be there in person?</h4><p>No. Your agent can participate for you. If you are onsite, mutual matches can use Meet now; otherwise, schedule a later call.</p></div>
             </div>
             <div class="content button-row">
-              <button class="primary next">Join this event</button>
-              <button class="secondary">How it works</button>
+              <button class="primary" data-next="goal">Set my event goal →</button>
             </div>
+          </section>
+
+          <section class="screen" data-panel="goal">
+            <div class="goal-poster">
+              <div class="goal-brand"><strong>Haunted Hacks</strong><span>Agent Mixer</span></div>
+              <div class="goal-step">Step 1 of 3<span>● ○ ○</span></div>
+              <div class="goal-head"><h2>What should your agent accomplish?</h2><p>Set a goal for this event. It helps your agent find the right people and start the right conversations.</p></div>
+              <div class="poster-field">
+                <div class="poster-label">◎ &nbsp; Shareable event goal</div>
+                <textarea id="event-goal">I want to meet a technical collaborator building durable multi-agent products with Terse and Agent Relay.</textarea>
+                <p class="hint">Other agents may hear this exact sentence. You’ll confirm it before networking starts.</p>
+              </div>
+              <div class="poster-field">
+                <div class="poster-label">▣ &nbsp; Private intent <small>(optional)</small></div>
+                <textarea placeholder="Constraints or preferences your agent may use internally…">Prioritize someone who can prototype this weekend. Do not mention fundraising plans.</textarea>
+                <div class="privacy-gate"><strong>Private means private.</strong><br>Your agent may use this to decide, but can never quote, summarize, imply, or transmit it.</div>
+              </div>
+              <div class="attendance-title">▣ &nbsp; Will you be at the venue?</div>
+              <div class="presence-options">
+                <button class="presence-card active" data-presence="here"><strong>I’ll be there</strong><span>Unlock Meet now after a mutual connection</span></button>
+                <button class="presence-card" data-presence="remote"><strong>Agent only</strong><span>Your agent attends; schedule a later call</span></button>
+              </div>
+              <button class="goal-next" data-next="choose-agent">Choose my agent →</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="choose-agent">
+            <div class="choose-poster">
+              <div class="poster-brand"><strong>Haunted Hacks</strong><span>Agent Mixer</span></div>
+              <div class="poster-progress"><i class="on"></i><i class="on"></i><i></i></div>
+              <div class="choose-kicker">Haunted Hacks · Step 2 of 3</div>
+              <div class="choose-head"><h2>Who represents you?</h2><p>You can keep multiple long-lived agents, but only one can join this event.</p></div>
+              <button class="poster-agent active" data-select-agent="Shimo"><span class="poster-avatar"></span><span><strong>Shimo</strong><p>Product, founders, collaborations</p><span class="recommended">★ Recommended</span></span><span class="pick">✓</span></button>
+              <button class="poster-agent" data-select-agent="Research Copilot"><span class="poster-avatar robot"></span><span><strong>Research Copilot</strong><p>Technical research and conferences</p></span><span class="pick">✓</span></button>
+              <button class="create-poster-agent" data-next="create-agent"><b>＋</b><span><strong>Create a new agent</strong><span>Start manually, import from LinkedIn/GitHub, or connect an external Agent Relay agent.</span></span></button>
+              <button class="choose-continue" data-next="profile">Continue with <span data-continue-agent>Shimo</span> →</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="create-agent">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="choose-agent" aria-label="Back">←</button><span class="hint">Create a long-lived agent</span></header>
+            <div class="content grow">
+              <h2>How do you want to start?</h2>
+              <div class="choice-stack">
+                <button class="choice-card" data-next="import"><strong>Import my professional profile</strong><span>LinkedIn, GitHub, website, or résumé. Imported material stays private until you approve public fields.</span></button>
+                <button class="choice-card" data-create-mode="manual"><strong>Set up manually</strong><span>Fastest option: name, role, one-sentence goal, and optional bio.</span></button>
+                <button class="choice-card"><strong>Connect an external agent</strong><span>Verify an Agent Relay address and grant access only for this event.</span></button>
+              </div>
+              <div data-manual-fields hidden>
+                <label>Agent name</label><input value="Shimo" />
+                <label>Your role</label><div class="chips"><button class="chip">Founder</button><button class="chip">Investor</button><button class="chip active">Designer</button><button class="chip">Engineer</button><button class="chip">Other</button></div>
+                <label>Public bio <span style="font-weight:400;color:var(--muted)">· optional</span></label><textarea>I design social products and agent experiences.</textarea>
+                <button class="primary" data-next="review-knowledge" style="width:100%">Review knowledge</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="import">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="create-agent" aria-label="Back">←</button><span class="hint">Private by default</span></header>
+            <div class="content grow">
+              <h2>Import what your agent should know</h2>
+              <p class="lede">We use these sources to propose a profile. Nothing becomes public automatically.</p>
+              <div class="source-actions"><button class="secondary" data-source>LinkedIn</button><button class="secondary" data-source>GitHub</button><button class="secondary" data-source>Personal website</button><button class="secondary" data-source>Résumé / PDF</button></div>
+              <div class="knowledge-block private"><h4>Import boundary</h4><p>Raw source files remain private. Agent Mixer extracts candidate public facts, shows where each fact came from, and waits for your approval.</p></div>
+              <div class="list-row" data-import-status><strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p></div>
+            </div>
+            <div class="screen-footer"><button class="primary" data-next="review-knowledge" style="width:100%">Generate draft profile</button><button class="secondary" data-next="review-knowledge" style="width:100%;margin-top:7px">Skip import</button></div>
+          </section>
+
+          <section class="screen" data-panel="review-knowledge">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="import" aria-label="Back">←</button><span class="hint">Review before publishing</span></header>
+            <div class="content grow">
+              <h2>Approve your agent’s knowledge</h2>
+              <div class="knowledge-block"><h4>Public knowledge</h4><p>Other agents may query or quote only the facts you approve here.</p><div class="source-item"><span>Product designer building agent experiences</span><strong>Approve</strong></div><div class="source-item"><span>Portfolio · julius.design</span><strong>Approve</strong></div><div class="source-item"><span>Interested in technical collaborators</span><strong>Edit</strong></div></div>
+              <div class="knowledge-block private"><h4>Private knowledge</h4><p>Used only for internal judgment. It can never be quoted, summarized, paraphrased, implied, or sent through Agent Relay.</p><div class="source-item"><span>Imported source documents</span><strong>Private</strong></div><div class="source-item"><span>Preferences and deal-breakers</span><strong>Private</strong></div></div>
+              <div class="privacy-gate">Only approved public knowledge, your confirmed event goal, and the current conversation may leave your agent.</div>
+            </div>
+            <div class="screen-footer"><button class="primary" data-next="profile" style="width:100%">Approve and use this agent</button></div>
           </section>
 
           <section class="screen" data-panel="profile">
             <div class="status-bar"></div>
             <div class="content">
-              <div class="progress"><i class="on"></i><i class="on"></i><i></i></div>
-              <h3>Set up this event</h3>
-              <p class="hint">Your long-term agent is ready. Tell it what matters today.</p>
-              <label>Represent me with</label>
-              <div class="agent-card" style="margin:8px 0"><div class="avatar">SH</div><div><strong>Shimo</strong><p>Only one agent can represent you here.</p></div><span class="selected-dot"></span></div>
-              <label for="name">Your name</label>
-              <input id="name" value="Julius" />
-              <label>Your role</label>
-              <div class="chips">
-                <button class="chip">Founder</button><button class="chip">Investor</button><button class="chip active">Designer</button><button class="chip">Engineer</button><button class="chip">GTM / Sales</button><button class="chip">Other</button>
-              </div>
-              <label for="goal">What do you want from this event?</label>
-              <textarea id="goal">I want to meet a technical cofounder building products for AI agents.</textarea>
-              <p class="hint">Your agent shares this goal with other agents.</p>
-              <label for="bio">Short bio <span style="font-weight:400;color:var(--muted)">· optional</span></label>
-              <textarea id="bio" placeholder="A little context helps your agent make better matches."></textarea>
-              <label>Are you at the event?</label>
-              <div class="presence-options">
-                <button class="presence-card active" data-presence="here"><strong>I’m here</strong><span>My agent finds people I can meet now</span></button>
-                <button class="presence-card" data-presence="remote"><strong>Agent only</strong><span>I’m not attending; follow up online</span></button>
+              <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+              <span class="event-tag">Haunted Hacks · Step 3 of 3</span>
+              <h2>Ready for Agent World</h2>
+              <p class="lede">Confirm exactly what Shimo will carry into this event.</p>
+              <div class="setup-checklist">
+                <div class="setup-check"><i>✓</i><span><strong>Representative</strong><br><small data-selected-agent-copy>Shimo · one agent for this event</small></span><button class="text-button" data-next="choose-agent">Change</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Shareable goal</strong><br><small>Technical collaborator for durable multi-agent products</small></span><button class="text-button" data-next="goal">Edit</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Private intent</strong><br><small>Available for internal decisions only</small></span><button class="text-button" data-next="goal">Review</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Attendance</strong><br><small data-attendance-copy>You are at the venue · Meet now enabled</small></span><button class="text-button" data-next="goal">Change</button></div>
               </div>
               <div class="switch-row" style="margin-left:0;margin-right:0"><div><strong>Automatic matching</strong><span>Let Shimo propose strong matches</span></div><button class="switch" aria-label="Automatic matching on"></button></div>
               <label>Conversation limits</label>
-              <div class="chips"><button class="chip active">3 at once</button><button class="chip">3 min each</button><button class="chip">Stop after 10</button></div>
+              <div class="chips"><button class="chip active">3 at once</button><button class="chip">3 min normally</button><button class="chip">6 min high fit</button></div>
+              <p class="hint">You can watch full transcripts. The only live control is End conversation.</p>
             </div>
             <div class="screen-footer"><button class="primary next" style="width:100%">Start networking</button></div>
           </section>
@@ -901,15 +1077,29 @@
             <div class="screen-footer">
               <div class="composer"><input data-chat-input aria-label="Message Maya" placeholder="Message Maya…"><button data-send-message aria-label="Send message">↑</button></div>
               <span class="composer-status" data-composer-status></span>
-              <button class="primary" style="width:100%;margin-top:6px" data-arrange-action>Meet now</button>
+              <button class="primary" style="width:100%;margin-top:6px" data-arrange-action>Plan a meeting</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="meet-choice">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="chat" aria-label="Back to chat">←</button><span class="hint">Maya · Human connection</span></header>
+            <div class="content grow">
+              <h2>How do you want to meet?</h2>
+              <p class="lede">These are separate actions. Meeting at the venue never creates a calendar event.</p>
+              <div class="choice-stack">
+                <button class="choice-card" data-next="meeting" data-meet-now-option><strong>Meet now at Haunted Hacks</strong><span>Available because both of you are onsite. Maya must accept before the meeting point and identification details appear.</span></button>
+                <button class="choice-card" data-next="calendar"><strong>Schedule for later</strong><span>Create a normal Google Calendar invitation. Google handles acceptance, decline, new-time proposals, reminders, and cancellation.</span></button>
+              </div>
+              <div class="system-note" data-meeting-availability>Both of you are at Haunted Hacks, so either option is available.</div>
             </div>
           </section>
 
           <section class="screen" data-panel="meeting">
             <div class="status-bar"></div>
             <header class="topline"><button class="flow-back" data-next="chat" aria-label="Back to chat">←</button><span class="hint">Maya · Haunted Hacks</span></header>
-            <div class="meeting-title"><h2 data-meeting-title>Meet now</h2><p class="lede" data-meeting-lede>Send Maya a request before the meeting point is revealed.</p></div>
-            <div class="meeting-mode" data-here-details>
+            <div class="meeting-title"><h2>Meet now</h2><p class="lede">Send Maya a request before the meeting point is revealed.</p></div>
+            <div class="meeting-mode">
               <div class="meeting-state" data-meet-state>Ready to request</div>
               <div class="meeting-details" data-meeting-card hidden>
               <div class="detail"><div class="detail-icon">P</div><div><h4>Meeting point</h4><p>By the YC banner near the main stage</p></div></div>
@@ -917,23 +1107,30 @@
               <div class="detail"><div class="detail-icon">O</div><div><h4>Start with this</h4><p>“If agents could attend one kind of event for us, which would be most valuable?”</p></div></div>
               <div class="detail"><div class="detail-icon">M</div><div><h4>Look for</h4><p>Shared by Maya for this meeting only · green jacket · engineer badge</p></div></div>
               </div>
-              <div class="meet-action"><button class="primary" style="width:100%" data-meet-primary>Send Meet now request</button><button class="secondary" style="width:100%;margin-top:8px" data-next="chat">Back to chat</button></div>
+              <div class="meet-action"><button class="primary" style="width:100%" data-meet-primary>Send Meet now request</button><button class="secondary" style="width:100%;margin-top:8px" data-next="meet-choice">Choose another option</button></div>
             </div>
-            <div class="meeting-mode" data-remote-details hidden>
-              <div class="system-note">Later-product preview · Google Calendar integration is not part of the hackathon build.</div>
+          </section>
+
+          <section class="screen" data-panel="calendar">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="meet-choice" aria-label="Back">←</button><span class="hint">Maya · Schedule later</span></header>
+            <div class="meeting-title"><h2>Schedule a meeting</h2><p class="lede">Review the details, then hand off to Google Calendar.</p></div>
+            <div class="meeting-mode">
+              <div class="system-note">Agent Mixer creates the invitation; Google Calendar owns the response and final event record.</div>
               <div class="meeting-details">
               <div class="detail"><div class="detail-icon">C</div><div><h4>Google Calendar</h4><p>Choose a time, then Agent Mixer sends a normal calendar invitation. Maya can accept, decline, or propose a new time in Google Calendar.</p></div></div>
               <div class="detail"><div class="detail-icon">V</div><div><h4>Meeting format</h4><p>Google Meet link added automatically</p></div></div>
-              <div><h4>Suggested times · Hong Kong time</h4><div class="slot-grid"><button class="slot active">Tue · 3:00 PM</button><button class="slot">Wed · 11:00 AM</button></div></div>
+              <div><h4>Suggested times · local time</h4><div class="slot-grid"><button class="slot active">Tue · 3:00 PM</button><button class="slot">Wed · 11:00 AM</button></div></div>
               </div>
               <div class="meeting-state" data-calendar-state>Not sent</div>
-              <div class="meet-action"><button class="primary" style="width:100%" data-calendar-primary>Review invitation</button><button class="secondary" style="width:100%;margin-top:8px" data-next="chat">Back to chat</button></div>
+              <div class="calendar-states"><span>Invitation sent</span><span>Accepted</span><span>Declined</span><span>New time proposed</span><span>Cancelled</span></div>
+              <div class="meet-action"><button class="primary" style="width:100%" data-calendar-primary>Review invitation</button><button class="secondary" style="width:100%;margin-top:8px" data-next="meet-choice">Choose another option</button></div>
             </div>
           </section>
 
           <section class="screen" data-panel="recap">
             <div class="status-bar"></div>
-            <header class="app-header"><div><span class="hint">Haunted Hacks · Generated 8:45 PM</span><h3>Your event recap</h3></div><button class="icon-button" data-share-recap aria-label="Share recap">↗</button></header>
+            <header class="app-header"><div><span class="hint">Haunted Hacks: Real-Time AI Edition · Generated 8:45 PM</span><h3>Your event recap</h3></div><button class="icon-button" data-share-recap aria-label="Share recap">↗</button></header>
             <div class="stat-grid"><div class="stat"><strong>8</strong><span>conversations</span></div><div class="stat"><strong>3</strong><span>matches</span></div><div class="stat"><strong>1</strong><span>meeting</span></div></div>
             <div class="section-title"><h4>Priority follow-ups</h4><button class="text-button" data-recap-see-all>See all</button></div>
             <div class="list-row"><strong>1 · Maya Chen <span class="status-pill" style="margin:0">Agent inference · 94%</span></strong><p>Best cofounder fit based on complementary skills and aligned timing.</p><div class="inline-actions"><button class="primary" data-next="meeting">Open meeting</button><button class="secondary" data-next="chat">View chat</button></div></div>
@@ -949,7 +1146,7 @@
             <header class="app-header"><h3>Integrations</h3><button class="icon-button">JU</button></header>
             <div class="list-row"><strong>Google account</strong><p>Signed in · julius@example.com</p><span class="status-pill">Connected</span></div>
             <div class="list-row"><strong>Google Calendar</strong><p>Create invitations only after you choose to schedule.</p><button class="text-button">Manage</button></div>
-            <div class="list-row"><strong>Luma + Partiful</strong><p>Open Agent Mixer from an organizer’s event link. No organizer approval required.</p><span class="status-pill">Event sources</span></div>
+            <div class="list-row"><strong>YC Events + Luma + Partiful</strong><p>This demo opens from the Haunted Hacks page on YC Events; organizers can also distribute Agent Mixer through Luma or Partiful.</p><span class="status-pill">Event sources</span></div>
             <div class="list-row"><strong>LinkedIn, website, resume</strong><p>Sources used to build and refresh your public profile.</p><button class="text-button" data-next="knowledge">Review data</button></div>
             <div class="list-row"><strong>Bring your own agent</strong><p>Connect through Agent Relay and select it per event.</p><button class="text-button" data-next="agents">Manage agents</button></div>
             <div class="knowledge-block private"><h4>Privacy boundary</h4><p>Private knowledge stays internal even when another agent asks for it. Only approved public fields and your event goal can leave your agent.</p></div>
@@ -964,18 +1161,25 @@
   <script>
     const steps = [...document.querySelectorAll('.step')];
     const panels = [...document.querySelectorAll('.screen')];
-    const defaultState = { presence:'here', match:'new', meeting:'ready', calendar:'draft', selectedMatchTab:'new' };
+    const defaultState = { presence:'here', selectedAgent:'Shimo', match:'new', meeting:'ready', calendar:'draft', selectedMatchTab:'new' };
     let prototypeState = { ...defaultState, ...JSON.parse(sessionStorage.getItem('agentMixerPrototype') || '{}') };
+    let screenHistory = [];
+    const fallbackBack = { welcome:'home', goal:'welcome', 'choose-agent':'goal', 'create-agent':'choose-agent', import:'create-agent', 'review-knowledge':'import', profile:'choose-agent', live:'profile', matches:'live', match:'matches', chats:'matches', chat:'chats', 'meet-choice':'chat', meeting:'meet-choice', calendar:'meet-choice', recap:'home', agents:'home', knowledge:'agents', settings:'home' };
     const saveState = () => sessionStorage.setItem('agentMixerPrototype', JSON.stringify(prototypeState));
     document.querySelector('[data-reset-demo]').addEventListener('click', () => { sessionStorage.removeItem('agentMixerPrototype'); location.reload(); });
-    const show = (id) => {
+    const show = (id, record = true) => {
+      const current = panels.find((panel) => panel.classList.contains('active'))?.dataset.panel;
+      if (record && current && current !== id) screenHistory.push(current);
       steps.forEach((step) => step.setAttribute('aria-selected', String(step.dataset.screen === id)));
       panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === id));
       document.querySelectorAll('.app-nav-item').forEach((item) => item.classList.toggle('active', item.dataset.next === id));
+      const targetPanel = panels.find((panel) => panel.dataset.panel === id);
+      phone.classList.toggle('show-global-back', id !== 'home' && !targetPanel.querySelector('.flow-back'));
       if (id === 'matches') renderMatches();
       if (id === 'match') renderMatch();
       if (id === 'chats') renderChats();
       if (id === 'meeting') renderMeeting();
+      if (id === 'calendar') renderMeeting();
       if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
     };
     const menuToggle = document.querySelector('.menu-toggle');
@@ -987,6 +1191,11 @@
     document.querySelector('.menu-scrim').addEventListener('click', () => setMenu(false));
     steps.forEach((step) => step.addEventListener('click', () => { show(step.dataset.screen); setMenu(false); }));
     const phone = document.querySelector('.phone');
+    document.querySelector('.global-back').addEventListener('click', () => {
+      const current = panels.find((panel) => panel.classList.contains('active'))?.dataset.panel;
+      const previous = screenHistory.pop() || fallbackBack[current] || 'home';
+      show(previous, false);
+    });
     const appMenuToggle = document.querySelector('.app-menu-toggle');
     const setAppMenu = (open) => {
       phone.classList.toggle('app-menu-open', open);
@@ -1013,13 +1222,27 @@
       document.querySelectorAll('.presence-card').forEach((card) => card.classList.toggle('active', card.dataset.presence === mode));
       const remote = mode === 'remote';
       document.querySelector('[data-presence-copy]').textContent = remote ? 'You are joining through your agent · Maya is here now · Schedule for later' : 'You and Maya are both at Haunted Hacks · Meet now is available';
-      document.querySelector('[data-arrange-action]').textContent = remote ? 'Pick a time' : 'Meet now';
-      document.querySelector('[data-meeting-title]').textContent = remote ? 'Schedule a meeting' : 'Meet now';
-      document.querySelector('[data-meeting-lede]').textContent = remote ? 'Choose a time before handing off to Google Calendar.' : 'Send Maya a request before the meeting point is revealed.';
-      document.querySelector('[data-here-details]').hidden = remote;
-      document.querySelector('[data-remote-details]').hidden = !remote;
+      document.querySelector('[data-arrange-action]').textContent = remote ? 'Schedule for later' : 'Plan a meeting';
+      document.querySelector('[data-attendance-copy]').textContent = remote ? 'Agent only · Schedule later' : 'You are at the venue · Meet now enabled';
+      document.querySelector('[data-meeting-availability]').textContent = remote ? 'You are not onsite, so Meet now is unavailable. Schedule a later meeting instead.' : 'Both of you are at Haunted Hacks, so either option is available.';
+      document.querySelector('[data-meet-now-option]').disabled = remote;
     };
     document.querySelectorAll('.presence-card').forEach((card) => card.addEventListener('click', () => applyPresence(card.dataset.presence)));
+    document.querySelectorAll('[data-select-agent]').forEach((button) => button.addEventListener('click', () => {
+      prototypeState.selectedAgent=button.dataset.selectAgent; saveState();
+      document.querySelector('[data-selected-agent-copy]').textContent=`${prototypeState.selectedAgent} · one agent for this event`;
+      document.querySelector('[data-continue-agent]').textContent=prototypeState.selectedAgent;
+      document.querySelectorAll('[data-select-agent]').forEach((item) => item.classList.toggle('active', item===button));
+    }));
+    document.querySelector('[data-create-mode="manual"]').addEventListener('click', () => {
+      document.querySelector('[data-manual-fields]').hidden=false;
+      document.querySelector('[data-manual-fields]').scrollIntoView({block:'start',behavior:'smooth'});
+    });
+    document.querySelectorAll('[data-source]').forEach((button) => button.addEventListener('click', () => {
+      button.classList.toggle('primary'); button.classList.toggle('secondary');
+      const selected=[...document.querySelectorAll('[data-source].primary')].map((item)=>item.textContent.trim());
+      document.querySelector('[data-import-status]').innerHTML=selected.length?`<strong>${selected.length} source${selected.length>1?'s':''} ready</strong><p>${selected.join(' · ')} · Raw data remains private until review.</p>`:'<strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p>';
+    }));
 
     const renderMatches = () => {
       const tab = prototypeState.selectedMatchTab;
@@ -1083,7 +1306,7 @@
     document.querySelector('[data-send-message]').addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', (event) => { if (event.key==='Enter') { event.preventDefault(); sendMessage(); } });
     document.querySelector('[data-safety-toggle]').addEventListener('click', () => document.querySelector('[data-safety-menu]').classList.toggle('open'));
-    document.querySelector('[data-arrange-action]').addEventListener('click', () => show('meeting'));
+    document.querySelector('[data-arrange-action]').addEventListener('click', () => show(prototypeState.presence==='remote'?'calendar':'meet-choice'));
 
     const renderMeeting = () => {
       applyPresence(prototypeState.presence);
@@ -1113,6 +1336,9 @@
     document.querySelector('[data-share-recap]').addEventListener('click', () => { document.querySelector('[data-share-recap]').textContent='✓'; document.querySelector('[data-share-recap]').setAttribute('aria-label','Share preview excludes private knowledge'); });
     document.querySelector('[data-recap-see-all]').addEventListener('click', () => { document.querySelector('[data-recap-see-all]').textContent='All 3 shown'; });
     applyPresence(prototypeState.presence);
+    document.querySelector('[data-selected-agent-copy]').textContent=`${prototypeState.selectedAgent} · one agent for this event`;
+    document.querySelector('[data-continue-agent]').textContent=prototypeState.selectedAgent;
+    document.querySelectorAll('[data-select-agent]').forEach((item) => item.classList.toggle('active', item.dataset.selectAgent===prototypeState.selectedAgent));
     renderMatches(); renderMatch(); renderChats(); renderMeeting();
   </script>
 </body>
