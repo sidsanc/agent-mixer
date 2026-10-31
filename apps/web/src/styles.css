@@ -1922,3 +1922,26 @@ textarea:focus-visible {
   color: var(--dark);
   background: var(--cream);
 }
+
+/* ---------- matches: reversible decisions ---------- */
+.row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.row-wrap .restore {
+  align-self: flex-end;
+}
+.inline-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--cyan);
+  font: inherit;
+  font-weight: 900;
+  text-decoration: underline;
+}
+.waiting-box .text-btn {
+  flex: none;
+  padding: 8px 4px;
+}

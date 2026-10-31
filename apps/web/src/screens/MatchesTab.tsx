@@ -34,9 +34,24 @@ export function MatchesTab({
     return s === "connected" ? "connected" : s === "passed" ? "passed" : "new"
   }
 
+  const [restoring, setRestoring] = useState<string | null>(null)
   const current = open ? matches.find((m) => m.introId === open) : null
   if (current) {
-    return <MatchDetail m={current} it={mx.intros[current.introId]} me={me} mx={mx} onBack={() => setOpen(null)} onChat={() => onChat(current.introId)} />
+    return (
+      <MatchDetail
+        key={current.introId}
+        m={current}
+        it={mx.intros[current.introId]}
+        me={me}
+        mx={mx}
+        reconsider={restoring === current.introId}
+        onBack={() => {
+          setRestoring(null)
+          setOpen(null)
+        }}
+        onChat={() => onChat(current.introId)}
+      />
+    )
   }
 
   const counts = { new: 0, connected: 0, passed: 0 }
@@ -63,7 +78,7 @@ export function MatchesTab({
               ? "When your agent and another agent both see a fit, the match shows up here."
               : section === "connected"
                 ? "Human chat opens after both people choose Connect."
-                : "Passed introductions stay here."}
+                : "Passed introductions stay recoverable here."}
           </p>
         </div>
       ) : (
@@ -76,10 +91,12 @@ export function MatchesTab({
                 : e.myChoice === "connect"
                   ? `Waiting for ${first(m.other.name)}`
                   : e.status === "passed"
-                    ? "Passed"
+                    ? e.myChoice === "pass" ? "Passed · restore any time" : "Not this time"
                     : "New · review"
+            const canRestore = e.status === "passed" && e.myChoice === "pass"
             return (
-              <button key={m.introId} className="row-card" onClick={() => setOpen(m.introId)}>
+              <div key={m.introId} className="row-wrap">
+              <button className="row-card" onClick={() => setOpen(m.introId)}>
                 <Avatar id={m.other.id} role={m.other.role} size={48} />
                 <span className="row-text">
                   <strong>
@@ -90,6 +107,18 @@ export function MatchesTab({
                 </span>
                 <span className="chev">›</span>
               </button>
+              {canRestore && (
+                <button
+                  className="pill-btn cyan restore"
+                  onClick={() => {
+                    setRestoring(m.introId)
+                    setOpen(m.introId)
+                  }}
+                >
+                  Restore match
+                </button>
+              )}
+              </div>
             )
           })}
         </div>
@@ -103,6 +132,7 @@ function MatchDetail({
   it,
   me,
   mx,
+  reconsider: startReconsider,
   onBack,
   onChat,
 }: {
@@ -110,25 +140,43 @@ function MatchDetail({
   it?: IntroState
   me: string
   mx: MixerState
+  reconsider?: boolean
   onBack: () => void
   onChat: () => void
 }) {
   const [busy, setBusy] = useState<Choice | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  // Choices stay reversible until both Connect; "reconsider" shows Connect/Pass again.
+  const [reconsider, setReconsider] = useState(!!startReconsider)
+  const [notice, setNotice] = useState<string | null>(null)
   const { status, myChoice } = effective(m, it, me)
   const o = m.other
 
-  async function decide(choice: Choice) {
-    if (!mx.backend || busy || myChoice) return
+  async function decide(choice: Choice, after?: () => void) {
+    if (!mx.backend || busy || status === "connected") return
     setBusy(choice)
+    setErr(null)
     try {
       mx.setIntro(await mx.backend.decide(m.introId, me, choice))
+      after?.()
       mx.refresh()
     } catch (e) {
       console.error(e)
+      setErr(String(e).includes("409") ? "This match is already locked." : "Could not save that. Try again.")
     } finally {
       setBusy(null)
     }
   }
+  const choose = (choice: Choice) =>
+    decide(choice, () => {
+      setReconsider(false)
+      setNotice(null)
+    })
+  const undoConnect = () =>
+    decide("pass", () => {
+      setReconsider(true)
+      setNotice("Connect withdrawn. Nothing was shared.")
+    })
 
   return (
     <div className="page detail">
@@ -174,14 +222,39 @@ function MatchDetail({
 
       {status === "connected" ? (
         <>
-          <div className="presence-line">You both chose Connect. Your human chat is now open.</div>
+          <div className="presence-line">You both chose Connect. This match is locked and your human chat is open.</div>
           <button className="cta cyan" onClick={onChat}>
             Open chat with {first(o.name)}
           </button>
           <MeetPanel m={m} it={it} me={me} mx={mx} />
         </>
+      ) : (status === "passed" && myChoice === "pass") || reconsider ? (
+        <>
+          {notice ? (
+            <p className="note">{notice}</p>
+          ) : reconsider ? (
+            <p className="note">Changed your mind? Choose again. Contact details stay private.</p>
+          ) : (
+            <p className="note">
+              You passed. Nothing was shared.{" "}
+              <button className="inline-link" onClick={() => setReconsider(true)}>
+                Undo
+              </button>
+            </p>
+          )}
+          {reconsider && (
+            <div className="decide">
+              <button className="cta ghost" onClick={() => choose("pass")} disabled={!!busy}>
+                Pass
+              </button>
+              <button className="cta cyan" onClick={() => choose("connect")} disabled={!!busy}>
+                {busy === "connect" ? "Connecting…" : "Connect"}
+              </button>
+            </div>
+          )}
+        </>
       ) : status === "passed" ? (
-        <p className="note">{myChoice === "pass" ? "You passed on this introduction." : "Not this time. Nothing was shared."}</p>
+        <p className="note">Not this time. Nothing was shared.</p>
       ) : myChoice === "connect" ? (
         <div className="waiting-box">
           <span className="typing-dots">
@@ -190,23 +263,27 @@ function MatchDetail({
             <i />
           </span>
           <div>
-            <strong>Waiting for {first(o.name)}</strong>
-            <span>You chose Connect. Contact details stay private until {first(o.name)} connects too.</span>
+            <strong>Waiting for the other person</strong>
+            <span>You chose Connect. Nothing private is released until {first(o.name)} connects too.</span>
           </div>
+          <button className="text-btn" onClick={undoConnect} disabled={!!busy}>
+            {busy === "pass" ? "Undoing…" : "Undo"}
+          </button>
         </div>
       ) : (
         <>
           <p className="note">Neither side has connected yet. Contact details stay private.</p>
           <div className="decide">
-            <button className="cta ghost" onClick={() => decide("pass")} disabled={!!busy}>
+            <button className="cta ghost" onClick={() => choose("pass")} disabled={!!busy}>
               Pass
             </button>
-            <button className="cta cyan" onClick={() => decide("connect")} disabled={!!busy}>
+            <button className="cta cyan" onClick={() => choose("connect")} disabled={!!busy}>
               {busy === "connect" ? "Connecting…" : "Connect"}
             </button>
           </div>
         </>
       )}
+      {err && <p className="err">{err}</p>}
     </div>
   )
 }
