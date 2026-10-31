@@ -118,6 +118,7 @@ class MockEngine {
       bio: b.bio ?? "",
       shareableGoal: b.goal,
       attendance: b.attendance ?? "onsite",
+      ...(b.avatar ? { avatar: b.avatar } : {}),
     }
     this.profiles.set(id, prof)
     this.me = id

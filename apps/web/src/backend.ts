@@ -3,6 +3,7 @@ import type {
   Choice,
   EventView,
   Attendance,
+  AvatarId,
   IntroState,
   MeetAction,
   Role,
@@ -19,6 +20,7 @@ export interface SignupBody {
   attendance?: Attendance
   /** Private until both Connect: how the other person can spot you. */
   contact?: string
+  avatar?: AvatarId
 }
 
 export interface Backend {
