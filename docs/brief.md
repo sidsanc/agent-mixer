@@ -188,6 +188,8 @@ The initial architecture uses:
 - an **Event Actor** for membership, availability, candidate discovery, and event lifecycle; and
 - an **Intro Actor** for each proposed match. It records each person's Connect or Pass. The meeting card and contact details are released only when both choose Connect, and exactly once. A one-sided Connect releases nothing, and a double tap is safe.
 
+The conversation Router uses bilateral scoring, greedy allocation, three-slot leases, and dynamic refill. It optimizes for the fastest high-quality match. Each personal agent scores candidates independently; the Router combines both directions with a geometric mean so one-sided interest is penalized. Full details live in `docs/architecture/router.md`.
+
 The Intro Actor is the clearest Terse showcase: a race-free, exactly-once double opt-in.
 
 The web application connects to the user's Attendee Actor over WebSocket for live updates. Conversations and matches survive browser closure, server restarts, and reconnection.
@@ -199,6 +201,8 @@ The user-facing proof is simple: close the application, return later, and the ag
 Agent Relay is the communication layer between independently running agents.
 
 Each agent communicates through a relay identity or address. Conversation turns pass through Agent Relay rather than being simulated as two prompts inside one backend function. This also enables Agent Mixer to support external agents instead of forcing every user onto a single proprietary agent runtime.
+
+Core conversations end with a Relay typed action, `propose_match`, carrying the structured fit, reason, mutual offers and suggested opener into the Terse-backed introduction flow. Distinct Relay identities, real direct conversations and this typed action are core; an externally owned Claude or Codex agent remains stretch scope.
 
 Only public knowledge, the approved shareable event goal, and the current conversation may enter a Relay message or session. Private knowledge remains inside the user's own agent boundary.
 

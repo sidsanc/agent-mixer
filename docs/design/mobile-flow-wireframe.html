@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Mixer — Haunted Hacks demo</title>
+  <style>
+    :root {
+      --ink: #17151f;
+      --muted: #6e6979;
+      --line: #d9d5e0;
+      --paper: #f6f4f8;
+      --surface: #ffffff;
+      --accent: #6f3ff5;
+      --accent-soft: #eee8ff;
+      --positive: #187a52;
+      --danger: #b83636;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 3px solid #bba8ff;
+      outline-offset: 2px;
+    }
+
+    .workbench {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+    }
+
+    .menu-toggle, .menu-scrim { display: none; }
+
+    .notes {
+      padding: 32px 28px;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .notes h1 {
+      margin: 0 0 10px;
+      font-size: 25px;
+      letter-spacing: -0.025em;
+    }
+
+    .notes p {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .step-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 11px;
+      border: 0;
+      border-radius: 12px;
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+    }
+
+    .step span:first-child {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      font-size: 12px;
+    }
+
+    .step[aria-selected="true"] {
+      color: var(--ink);
+      background: var(--accent-soft);
+      font-weight: 700;
+    }
+
+    .step[aria-selected="true"] span:first-child {
+      color: #fff;
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 48px 24px;
+    }
+    .stage > div { width: min(390px, 100%); }
+
+    .phone {
+      width: min(390px, 100%);
+      height: min(780px, calc(100vh - 64px));
+      min-height: 650px;
+      overflow: hidden;
+      border: 8px solid #24212b;
+      border-radius: 36px;
+      background: var(--surface);
+      box-shadow: 0 18px 45px rgba(37, 30, 53, 0.16);
+    }
+
+    .screen {
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-color: #bbb4c7 transparent;
+      scrollbar-width: thin;
+    }
+
+    .screen.active { display: flex; }
+    .status-bar { height: 28px; flex: 0 0 28px; }
+    .content { padding: 20px 20px 26px; }
+    .grow { flex: 1; }
+
+    .brand {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: white;
+      background: var(--accent);
+      font-size: 12px;
+    }
+
+    .event-tag {
+      display: inline-flex;
+      margin-top: 34px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 18px 0 12px;
+      font-size: 34px;
+      line-height: 1.04;
+      letter-spacing: -0.035em;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .agent-scene {
+      position: relative;
+      height: 210px;
+      margin: 26px 0 12px;
+      border: 1px dashed #b8b1c4;
+      border-radius: 18px;
+      background: #faf9fc;
+    }
+
+    .agent-dot {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border: 2px solid white;
+      border-radius: 18px;
+      color: #fff;
+      background: #7d7887;
+      box-shadow: 0 4px 14px rgba(38, 33, 48, 0.16);
+      font-weight: 800;
+    }
+
+    .agent-dot.primary { left: 50%; top: 50%; background: var(--accent); transform: translate(-50%, -50%); }
+    .agent-dot.a { left: 18px; top: 25px; }
+    .agent-dot.b { right: 20px; top: 24px; }
+    .agent-dot.c { right: 25px; bottom: 22px; }
+    .agent-dot.d { left: 24px; bottom: 24px; }
+
+    .connection {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 145px;
+      height: 1px;
+      background: #b6a5f4;
+      transform-origin: left center;
+    }
+    .connection.one { transform: rotate(-145deg); }
+    .connection.two { transform: rotate(-35deg); }
+    .connection.three { transform: rotate(30deg); }
+
+    .button-row { display: grid; gap: 10px; }
+    .primary, .secondary, .danger {
+      min-height: 50px;
+      border-radius: 14px;
+      font-weight: 800;
+    }
+    .primary { border: 0; color: #fff; background: var(--accent); }
+    .secondary { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+    .danger { border: 1px solid #e5bcbc; color: var(--danger); background: #fffafa; }
+
+    .progress {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin: 4px 0 24px;
+    }
+    .progress i { height: 4px; border-radius: 4px; background: #e7e3eb; }
+    .progress i.on { background: var(--accent); }
+
+    label {
+      display: block;
+      margin: 19px 0 8px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 14px;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    .hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .chip.active { color: var(--accent); border-color: #a58cf9; background: var(--accent-soft); }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 0 20px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .live { color: var(--positive); font-size: 12px; font-weight: 800; }
+    .live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #20a76f; }
+
+    .summary {
+      margin: 16px 20px 8px;
+      padding: 14px;
+      border-radius: 14px;
+      color: #3d2a76;
+      background: var(--accent-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 8px 20px 6px;
+    }
+    .tab {
+      padding: 9px 5px;
+      border: 0;
+      border-radius: 10px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .tab.active { color: var(--accent); background: var(--accent-soft); }
+
+    .transcript { display: grid; gap: 13px; padding: 16px 20px 24px; }
+    .message { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+    .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: white; background: #625c6d; font-size: 11px; font-weight: 800; }
+    .message.self .avatar { background: var(--accent); }
+    .message p { margin: 2px 0 0; padding: 10px 12px; border-radius: 4px 13px 13px 13px; background: #f1eff4; font-size: 13px; line-height: 1.45; }
+    .message.self p { background: var(--accent-soft); }
+    .speaker { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .screen-footer { margin-top: auto; padding: 12px 20px 20px; border-top: 1px solid var(--line); background: white; }
+
+    .match-hero { padding: 10px 20px 20px; text-align: center; }
+    .pair { display: flex; justify-content: center; align-items: center; margin: 24px 0 18px; }
+    .pair .avatar { width: 68px; height: 68px; border-radius: 21px; font-size: 18px; box-shadow: 0 0 0 4px white; }
+    .pair .avatar + .avatar { margin-left: -10px; background: #307b68; }
+    .match-hero h2 { margin: 0 0 6px; font-size: 30px; }
+    .role { color: var(--muted); font-size: 14px; }
+
+    .reason { margin: 0 20px; padding: 17px; border: 1px solid var(--line); border-radius: var(--radius); }
+    .reason h4, .meeting-details h4 { margin: 0 0 8px; font-size: 13px; }
+    .reason p, .meeting-details p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .offer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 20px 0; }
+    .offer { padding: 14px; border-radius: var(--radius); background: #f3f1f6; }
+    .offer strong { display: block; margin-bottom: 5px; font-size: 12px; }
+    .offer span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .match-actions { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin: auto 20px 22px; padding-top: 22px; }
+
+    .success-mark {
+      width: 74px;
+      height: 74px;
+      display: grid;
+      place-items: center;
+      margin: 18px auto 20px;
+      border-radius: 25px;
+      color: white;
+      background: var(--positive);
+      font-size: 34px;
+      font-weight: 800;
+    }
+    .meeting-title { text-align: center; padding: 0 24px; }
+    .meeting-title h2 { margin: 0 0 10px; }
+    .meeting-details { display: grid; gap: 18px; margin: 28px 20px 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+    .detail { display: grid; grid-template-columns: 36px 1fr; gap: 10px; }
+    .detail-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--accent); background: var(--accent-soft); font-weight: 800; }
+    .meet-action { margin: auto 20px 22px; padding-top: 24px; }
+    .source-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .source-badge { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: white; font-weight: 800; }
+    .presence-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .presence-card { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: white; text-align: left; }
+    .presence-card strong { display: block; margin-bottom: 4px; font-size: 13px; }
+    .presence-card span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .presence-card.active { border-color: #9679f6; background: var(--accent-soft); }
+    .integration-strip { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+    .integration-strip span { padding: 6px 8px; border-radius: 8px; background: #f1eff4; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .human-chat { display: grid; gap: 12px; padding: 16px 20px; }
+    .human-chat .message { grid-template-columns: 34px 1fr; }
+    .composer { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .composer input { min-width: 0; }
+    .composer button { width: 48px; border: 0; border-radius: 12px; color: white; background: var(--accent); font-weight: 800; }
+    .presence-line { margin: 0 20px 12px; padding: 10px 12px; border-radius: 11px; color: #3d2a76; background: var(--accent-soft); font-size: 12px; font-weight: 700; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 20px 16px; }
+    .app-header h3 { font-size: 24px; }
+    .icon-button { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 12px; background: white; font-weight: 800; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin: 22px 20px 10px; }
+    .section-title h4 { margin: 0; font-size: 14px; }
+    .text-button { border: 0; color: var(--accent); background: transparent; font-size: 12px; font-weight: 800; }
+    .event-card, .agent-card, .list-row { margin: 0 20px 10px; padding: 15px; border: 1px solid var(--line); border-radius: var(--radius); background: white; }
+    .event-card strong, .agent-card strong, .list-row strong { display: block; font-size: 14px; }
+    .event-card p, .agent-card p, .list-row p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .event-card .primary { width: 100%; min-height: 42px; margin-top: 14px; }
+    .status-pill { display: inline-flex; margin-top: 9px; padding: 5px 8px; border-radius: 999px; color: #3d2a76; background: var(--accent-soft); font-size: 10px; font-weight: 800; }
+    .agent-card { display: grid; grid-template-columns: 46px 1fr auto; gap: 11px; align-items: center; }
+    .agent-card .avatar { width: 46px; height: 46px; border-radius: 14px; }
+    .selected-dot { width: 18px; height: 18px; border: 5px solid var(--accent); border-radius: 50%; }
+    .bottom-nav { display: grid; grid-template-columns: repeat(4,1fr); margin-top: auto; padding: 9px 8px 13px; border-top: 1px solid var(--line); background: white; }
+    .bottom-nav button { border: 0; padding: 7px 2px; color: var(--muted); background: transparent; font-size: 10px; font-weight: 800; }
+    .bottom-nav button.active { color: var(--accent); }
+    .knowledge-block { margin: 0 20px 12px; padding: 16px; border-radius: var(--radius); background: #f3f1f6; }
+    .knowledge-block.private { color: #fff; background: #2a2632; }
+    .knowledge-block h4 { margin: 0 0 7px; font-size: 14px; }
+    .knowledge-block p { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .knowledge-block.private p { color: #cbc4d5; }
+    .source-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(110,105,121,.25); font-size: 12px; }
+    .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 20px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .switch-row strong { display: block; font-size: 13px; }
+    .switch-row span { color: var(--muted); font-size: 11px; }
+    .switch { width: 42px; height: 24px; padding: 3px; border: 0; border-radius: 999px; background: var(--accent); }
+    .switch::after { content:""; display:block; width:18px; height:18px; margin-left:auto; border-radius:50%; background:white; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 20px; }
+    .stat { padding: 13px 8px; border-radius: 12px; background: #f3f1f6; text-align: center; }
+    .stat strong { display:block; font-size: 20px; }
+    .stat span { color: var(--muted); font-size: 10px; }
+    .calendar-states { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .calendar-states span { padding:5px 7px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:9px; font-weight:800; }
+    .flow-back { min-width:44px; min-height:44px; border:0; color:inherit; background:transparent; font-size:20px; font-weight:900; }
+    .inline-actions { display:flex; gap:8px; margin-top:12px; }
+    .inline-actions button { flex:1; min-height:44px; }
+    .system-note { margin:8px 20px 12px; padding:10px 12px; border:1px solid rgba(255,255,255,.18); border-radius:12px; color:#f7e8f4; background:rgba(35,12,45,.55); font-size:11px; line-height:1.45; text-align:center; }
+    .opener-card { margin:0 20px 10px; padding:12px; border:1px dashed #7ff9f0; border-radius:12px; color:#28122e; background:#fff5d9; font-size:12px; line-height:1.45; }
+    .opener-card button { min-height:36px; margin-top:8px; border:0; border-radius:10px; color:#251033; background:#7ff9f0; font-weight:900; }
+    .match-list[hidden], .meeting-mode[hidden] { display:none !important; }
+    .match-card { position:relative; width:calc(100% - 40px); text-align:left; color:inherit; }
+    .match-card::after { content:'›'; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:22px; }
+    .match-score { float:right; color:#251033; background:#7ff9f0; padding:4px 7px; border-radius:999px; font-size:10px; font-weight:900; }
+    .toast { position:absolute; z-index:30; left:18px; right:18px; top:58px; padding:13px 14px; border-radius:14px; color:#28122e; background:#ffdb59; box-shadow:0 10px 24px rgba(22,6,28,.28); font-size:12px; font-weight:900; transform:translateY(-140%); transition:transform .22s ease; }
+    .phone.show-toast .toast { transform:translateY(0); }
+    .composer-status { display:block; min-height:16px; margin:5px 2px 0; color:#dfc6e2; font-size:10px; }
+    .safety-menu { display:none; gap:8px; margin:0 20px 12px; }
+    .safety-menu.open { display:grid; grid-template-columns:repeat(3,1fr); }
+    .safety-menu button { min-height:40px; border:1px solid rgba(255,255,255,.2); border-radius:10px; color:white; background:#3a1747; font-size:11px; font-weight:800; }
+    .memory-choice { display:flex; gap:8px; margin-top:10px; }
+    .memory-choice button { min-height:38px; padding:0 12px; border:1px solid #d4c5ad; border-radius:10px; color:#28122e; background:#fff; font-weight:800; }
+    .memory-choice button.chosen { color:white; border-color:#6f2579; background:#6f2579; }
+    .slot-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .slot { min-height:44px; border:1px solid var(--line); border-radius:11px; background:white; font-size:11px; font-weight:800; }
+    .slot.active { color:white; border-color:#6f2579; background:#6f2579; }
+    .meeting-state { display:inline-flex; margin:10px 20px 0; padding:6px 9px; border-radius:999px; color:#251033; background:#7ff9f0; font-size:10px; font-weight:900; }
+    .home-screen { background:#0f0e18 !important; }
+    .home-hero { position:relative; padding:66px 22px 16px; overflow:hidden; background:linear-gradient(180deg,rgba(18,8,28,.12) 0%,rgba(18,8,28,.05) 55%,#0f0e18 100%),url('assets/agent-world-home-hero-v2.png') center 42%/cover no-repeat; }
+    .home-hero::after { content:""; position:absolute; inset:auto 0 0; height:92px; background:linear-gradient(transparent,#0f0e18); pointer-events:none; }
+    .home-hero-content { position:relative; z-index:2; }
+    .home-greeting { margin:34px 0 2px; color:#f4e9f2; font-size:13px; letter-spacing:.03em; }
+    .home-avatar { position:absolute; top:0; right:0; width:54px; height:54px; border:0; border-radius:17px; color:#251033; background:#ffdb59; font-size:17px; font-weight:950; }
+    .home-avatar::after { content:""; position:absolute; right:-2px; bottom:2px; width:10px; height:10px; border:2px solid #ffdb59; border-radius:50%; background:#24d56b; }
+    .home-name { margin:0 0 34px; font-family:"Avenir Next Condensed","Arial Narrow",sans-serif; font-size:45px; line-height:.95; text-transform:uppercase; }
+    .home-kicker { margin:0 0 8px; font-size:11px; font-weight:800; letter-spacing:.32em; text-transform:uppercase; }
+    .home-manifesto { max-width:260px; margin:0; font-family:"Avenir Next Condensed","Arial Narrow",sans-serif; font-size:42px; line-height:.94; letter-spacing:-.02em; text-transform:uppercase; text-shadow:0 3px 16px rgba(20,5,29,.55); }
+    .home-tagline { max-width:235px; margin:12px 0 0; color:#fff6f7; font-size:16px; line-height:1.38; text-shadow:0 2px 12px rgba(20,5,29,.65); }
+    .hero-enter { position:relative; z-index:3; width:100%; min-height:64px; display:flex; align-items:center; justify-content:center; gap:22px; margin-top:34px; border:0; border-radius:18px; color:#231027; background:linear-gradient(100deg,#ff3d9e,#ff6fae); box-shadow:0 14px 34px rgba(255,61,158,.24); font-size:16px; font-weight:950; text-transform:uppercase; }
+    .hero-enter span { font-size:25px; font-weight:400; }
+    .home-feed { position:relative; z-index:4; margin-top:0; padding:12px 16px 28px; background:#0f0e18; }
+    .home-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:22px 0 12px; }
+    .home-section-head h4 { margin:0; font-size:16px; }
+    .home-section-head button { min-height:44px; color:#c9a7df; font-size:11px; letter-spacing:.04em; }
+    .live-card,.activity-card { width:100%; border:1px solid #ead8d2; color:#15162c; background:linear-gradient(135deg,#fff5ef,#f8e9e8); box-shadow:0 8px 20px rgba(0,0,0,.16); text-align:left; }
+    .live-card { position:relative; min-height:182px; padding:16px 18px; border-radius:18px; }
+    .mission-row { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:13px; }
+    .mission-label { color:#ff4aa5; font-size:11px; font-weight:950; text-transform:uppercase; }
+    .mission-label::before { content:""; display:inline-block; width:8px; height:8px; margin-right:6px; border-radius:50%; background:#ff4aa5; box-shadow:0 0 10px rgba(255,74,165,.55); }
+    .mission-row .text-button { min-height:32px; color:#81678f; }
+    .live-card h4 { max-width:150px; min-height:42px; margin:0; font-size:18px; line-height:1.18; }
+    .live-card .match-live { margin:7px 0 12px; color:#ff4aa5; font-size:14px; font-weight:900; }
+    .live-indicator { display:inline-flex; align-items:center; gap:7px; padding:6px 9px; border-radius:999px; background:#4b1736; font-size:10px; font-weight:900; }
+    .live-indicator::before { content:""; width:8px; height:8px; border-radius:50%; background:#ff2d77; box-shadow:0 0 10px #ff2d77; }
+    .agent-faces { position:absolute; right:36px; top:76px; display:flex; }
+    .mini-face { width:44px; height:44px; display:block; margin-left:-7px; overflow:hidden; border:2px solid #f8e9e8; border-radius:50%; background-image:url('assets/agent-conversation-portraits.png'); background-repeat:no-repeat; background-size:300% auto; background-position:0 31%; color:transparent; font-size:0; box-shadow:0 3px 10px rgba(0,0,0,.22); }
+    .mini-face:nth-child(2){background-position:50% 31%}.mini-face:nth-child(3){background-position:100% 31%}
+    .live-metrics { display:flex; justify-content:space-between; gap:12px; margin-top:16px; padding-top:13px; border-top:1px solid #e5d6dc; color:#7b668d; font-size:11px; font-weight:800; }
+    .card-arrow { position:absolute; right:15px; top:50%; color:#8e759c; font-size:25px; transform:translateY(-50%); }
+    .activity-list { display:grid; gap:9px; }
+    .activity-card { position:relative; min-height:82px; display:grid; grid-template-columns:104px 1fr; gap:14px; align-items:center; padding:8px; border-radius:15px; }
+    .activity-thumb { height:66px; border-radius:11px; background:url('assets/agent-world-home-hero-v2.png') center 62%/cover no-repeat; }
+    .activity-card:nth-child(2) .activity-thumb { background-position:center 88%; }
+    .activity-card strong { display:block; padding-right:22px; font-size:14px; line-height:1.45; }
+    .activity-card p { margin:5px 22px 0 0; color:#806f8e; font-size:11px; line-height:1.45; }
+    .queue-faces { display:flex; align-items:center; margin-top:7px; }
+    .queue-faces .mini-face { width:30px; height:30px; margin-left:-5px; border-color:#f8e9e8; }
+    .queue-faces .mini-face:first-child { margin-left:0; }
+    .queue-more { width:30px; height:30px; display:grid; place-items:center; margin-left:4px; border-radius:50%; color:#8d668e; background:#ecdadd; font-size:10px; font-weight:900; }
+    @media(prefers-reduced-motion:reduce){ .toast { transition:none; } }
+
+    .frame-note {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      .workbench { display: block; }
+      .menu-toggle {
+        position: fixed;
+        left: 12px;
+        top: 12px;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--ink);
+        background: white;
+        box-shadow: 0 6px 18px rgba(37, 30, 53, .12);
+      }
+      .menu-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:var(--ink); }
+      .menu-toggle span + span { margin-top:4px; }
+      .menu-scrim { position: fixed; inset: 0; z-index: 14; background: rgba(23, 21, 31, .32); }
+      body.menu-open .menu-scrim { display: block; }
+      .notes {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 15;
+        width: min(310px, 86vw);
+        padding: 74px 18px 24px;
+        overflow-y: auto;
+        border-right: 1px solid var(--line);
+        transform: translateX(-105%);
+        transition: transform 180ms ease-out;
+      }
+      body.menu-open .notes { transform: translateX(0); }
+      .notes h1 { display: block; }
+      .notes p { display: block; margin-bottom: 18px; }
+      .step-list { display: grid; overflow: visible; }
+      .step { min-width: 0; grid-template-columns: 24px 1fr; padding: 9px 10px; }
+      .step span:first-child { width: 24px; height: 24px; }
+      .stage { min-height: 100vh; padding: 0; place-items: start center; }
+      .phone { height: 100vh; min-height: 610px; border-width: 0; border-radius: 0; box-shadow: none; }
+      .status-bar { height: 62px; flex-basis: 62px; }
+      .frame-note { display: none; }
+    }
+
+    /* Prototype navigation stays behind one hamburger at every preview size. */
+    .workbench { display: block; }
+    .menu-toggle {
+      position: fixed;
+      left: 14px;
+      top: 14px;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: white;
+      box-shadow: 0 6px 18px rgba(37, 30, 53, .12);
+    }
+    .menu-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:var(--ink); }
+    .menu-toggle span + span { margin-top:4px; }
+    .menu-scrim { position: fixed; inset: 0; z-index: 14; background: rgba(23, 21, 31, .32); }
+    body.menu-open .menu-scrim { display: block; }
+    .notes {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 15;
+      width: min(310px, 86vw);
+      padding: 74px 18px 24px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      transform: translateX(-105%);
+      transition: transform 180ms ease-out;
+    }
+    body.menu-open .notes { transform: translateX(0); }
+    .step-list { display: grid; overflow: visible; }
+    .step { min-width: 0; grid-template-columns: 28px 1fr; }
+    .stage { min-height: 100vh; padding: 48px 24px; place-items: center; }
+
+    @media (max-width: 760px) {
+      .stage { padding: 0; place-items: start center; }
+    }
+
+    /* The real product uses an in-phone menu for its four primary areas. */
+    .menu-toggle, .menu-scrim { display: none !important; }
+    .workbench { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); }
+    .notes {
+      position: static;
+      width: auto;
+      padding: 32px 28px;
+      overflow: visible;
+      transform: none;
+      border-right: 1px solid var(--line);
+    }
+    .stage { min-height: 100vh; padding: 48px 24px; place-items: center; }
+    .phone { position: relative; }
+    .bottom-nav { display: none; }
+    .app-menu-toggle {
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      z-index: 12;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 5px 14px rgba(37, 30, 53, .1);
+    }
+    .app-menu-toggle span { display:block; width:20px; height:2px; border-radius:2px; background:var(--ink); }
+    .app-menu-toggle span + span { margin-top:5px; }
+    .app-menu-scrim { display:none; position:absolute; inset:0; z-index:10; border:0; background:rgba(23,21,31,.3); }
+    .app-drawer {
+      position:absolute;
+      inset:0 auto 0 0;
+      z-index:11;
+      width:82%;
+      padding:78px 18px 22px;
+      background:white;
+      transform:translateX(-105%);
+      transition:transform 180ms ease-out;
+    }
+    .phone.app-menu-open .app-drawer { transform:translateX(0); }
+    .phone.app-menu-open .app-menu-scrim { display:block; }
+    .app-drawer h3 { margin:0 10px 18px; }
+    .app-nav-item {
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 12px;
+      border:0;
+      border-radius:12px;
+      color:var(--ink);
+      background:transparent;
+      text-align:left;
+      font-weight:800;
+    }
+    .app-nav-item.active { color:var(--accent); background:var(--accent-soft); }
+    .app-nav-item small { color:var(--muted); font-size:10px; font-weight:700; }
+    .status-bar { height:62px; flex-basis:62px; }
+
+    @media (max-width: 760px) {
+      .workbench { display:block; }
+      .notes { display:none; }
+      .stage { padding:0; }
+    }
+
+    /* Chosen visual world: Vice City Social. */
+    body { background:#16091f; }
+    .notes { color:#fff; border-color:#4a2758; background:#251033; }
+    .notes p { color:#cdbbd7; }
+    .step { color:#cdbbd7; }
+    .step span:first-child { border-color:#745784; }
+    .step[aria-selected="true"] { color:#251033; background:#7ff9f0; }
+    .step[aria-selected="true"] span:first-child { color:#251033; border-color:#ffdb59; background:#ffdb59; }
+    .stage { background:radial-gradient(circle at 72% 18%,#51205e 0,transparent 32%),#16091f; }
+    .frame-note { color:#cdbbd7; }
+    .phone {
+      --ink:#fff7df;
+      --muted:#dfc6e2;
+      --line:rgba(255,255,255,.18);
+      --paper:#251033;
+      --surface:#351448;
+      --accent:#7ff9f0;
+      --accent-soft:rgba(127,249,240,.16);
+      --positive:#7ff9f0;
+      color:#fff7df;
+      border-color:#0f0913;
+      background:linear-gradient(165deg,#341247 0%,#6f1b72 52%,#e8678d 100%);
+      box-shadow:0 24px 70px rgba(0,0,0,.48);
+    }
+    .phone .screen { color:#fff7df; background:transparent; }
+    .phone h2,.phone h3 { font-family:"Avenir Next Condensed","Arial Narrow",sans-serif; text-transform:uppercase; text-shadow:1px 1px 0 #2a1036; }
+    .phone .hint,.phone .lede,.phone .role,.phone .speaker { color:#dfc6e2; }
+    .phone .app-menu-toggle { color:white; border:0; background:#3b1851; }
+    .phone .app-menu-toggle span { background:white; }
+    .phone .app-drawer { color:white; background:#251033; }
+    .phone .app-drawer h3 { color:#7ff9f0; }
+    .phone .app-nav-item { color:white; }
+    .phone .app-nav-item small { color:#cdbbd7; }
+    .phone .app-nav-item.active { color:#251033; background:#7ff9f0; }
+    .phone .app-nav-item.active small { color:#563d5e; }
+    .phone .icon-button,.phone .avatar { color:#2b123c; border:0; background:#ffdb59; }
+    .phone .primary { color:#251033; background:#7ff9f0; box-shadow:0 6px 0 #2f8f98; text-transform:uppercase; }
+    .phone .secondary { color:#fff7df; border-color:rgba(255,255,255,.28); background:rgba(35,12,45,.56); }
+    .phone .danger { color:#ffb3c3; border-color:#ff8ca4; background:rgba(35,12,45,.56); }
+    .phone .event-card,.phone .agent-card,.phone .list-row,.phone .reason,.phone .meeting-details { color:#28122e; border:0; background:#fff5d9; box-shadow:0 10px 24px rgba(30,8,38,.18); }
+    .phone .event-card p,.phone .agent-card p,.phone .list-row p,.phone .reason p,.phone .meeting-details p { color:#735f75; }
+    .phone .status-pill { color:#5e1b66; background:#f2c7dd; }
+    .phone .event-tag { color:#ffdb59; border-color:#ffdb59; background:rgba(46,13,57,.4); }
+    .phone .source-badge { color:#251033; border:0; background:#ffdb59; }
+    .phone .agent-scene { border-color:rgba(255,255,255,.3); background:rgba(35,12,45,.32); }
+    .phone .agent-dot.primary { color:#251033; background:#7ff9f0; }
+    .phone .agent-dot { background:#f06d91; }
+    .phone input,.phone textarea { color:#28122e; border:0; background:#fff5d9; }
+    .phone label { color:#ffdb59; text-transform:uppercase; }
+    .phone .chip { color:#f6dbea; border-color:rgba(255,255,255,.23); background:rgba(35,12,45,.38); }
+    .phone .chip.active { color:#251033; border-color:#7ff9f0; background:#7ff9f0; }
+    .phone .presence-card { color:#28122e; border:0; background:#fff5d9; }
+    .phone .presence-card span { color:#735f75; }
+    .phone .presence-card.active { box-shadow:0 0 0 3px #7ff9f0; }
+    .phone .switch-row { border-color:rgba(255,255,255,.2); }
+    .phone .switch-row span { color:#dfc6e2; }
+    .phone .switch { background:#7ff9f0; }
+    .phone .knowledge-block { color:#28122e; background:#fff5d9; }
+    .phone .knowledge-block p { color:#735f75; }
+    .phone .knowledge-block.private { color:white; background:#251033; box-shadow:0 0 0 1px rgba(255,255,255,.2); }
+    .phone .knowledge-block.private p { color:#cdbbd7; }
+    .phone .tab { color:#dfc6e2; }
+    .phone .tab.active { color:#251033; background:#7ff9f0; }
+    .phone .summary,.phone .presence-line { color:#251033; background:#7ff9f0; }
+    .phone .message p { color:#28122e; background:#fff5d9; }
+    .phone .message.self p { color:white; background:#6f2579; }
+    .phone .screen-footer,.phone .topline { border-color:rgba(255,255,255,.18); background:rgba(35,12,45,.72); }
+    .phone .offer { color:#28122e; background:#fff5d9; }
+    .phone .offer span { color:#735f75; }
+    .phone .success-mark { color:#251033; background:#7ff9f0; }
+    .phone .detail-icon { color:#251033; background:#ffdb59; }
+    .phone .stat { color:#28122e; background:#fff5d9; }
+    .phone .stat span { color:#735f75; }
+    .phone .calendar-states span { color:#f4dced; border-color:rgba(255,255,255,.24); }
+    .game-frame { width:100%; height:100%; border:0; background:#16091f; }
+    .flow-summary { display:grid; gap:8px; margin:14px 0; }
+    .flow-summary .list-row { margin:0; padding:12px; }
+    .choice-stack { display:grid; gap:10px; margin:12px 0; }
+    .choice-card { width:100%; padding:14px; border:1px solid var(--line); border-radius:16px; color:var(--ink); background:var(--surface); text-align:left; }
+    .choice-card strong,.choice-card span { display:block; }
+    .choice-card span { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .choice-card.active { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(86,232,222,.2); }
+    .privacy-gate { margin:12px 0; padding:12px; border:1px solid rgba(255,219,89,.42); border-radius:14px; background:rgba(255,219,89,.1); font-size:12px; line-height:1.45; }
+    .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .source-actions button { min-height:46px; }
+    .setup-checklist { display:grid; gap:9px; margin:14px 0; }
+    .setup-check { display:grid; grid-template-columns:24px 1fr auto; gap:8px; align-items:center; padding:11px; border-radius:13px; background:var(--surface); }
+    .setup-check i { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; color:#211227; background:var(--cyan); font-style:normal; font-weight:900; }
+    .setup-check small { color:var(--muted); }
+    .screen[data-panel="welcome"] .button-row { position:static; flex:0 0 auto; padding:20px 18px 34px; background:#8d235f; }
+    .global-back { position:absolute; top:18px; left:68px; z-index:26; display:none; place-items:center; width:42px; height:42px; border:1px solid rgba(255,255,255,.25); border-radius:13px; color:#fff; background:rgba(38,12,48,.72); backdrop-filter:blur(10px); font-size:22px; font-weight:900; box-shadow:0 8px 20px rgba(20,4,26,.2); }
+    .phone.show-global-back .global-back { display:grid; }
+    .phone:has(.screen[data-panel="welcome"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="welcome"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.72); }
+    .event-intro { flex:0 0 auto; width:100%; min-height:100%; padding:82px 18px 20px; background:linear-gradient(180deg,rgba(40,7,52,.22) 0%,rgba(52,10,60,.55) 35%,rgba(55,11,61,.93) 62%,#8d235f 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .event-intro-hero { text-align:center; text-shadow:0 2px 14px rgba(32,6,40,.55); }
+    .event-intro-hero .eyebrow { display:inline-block; padding:5px 13px; border-radius:8px; color:#ffb6e9; background:rgba(255,157,225,.2); font-size:10px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
+    .event-intro-hero h2 { margin:12px 0 3px; font-size:36px; font-style:italic; letter-spacing:-.02em; }
+    .event-intro-hero .subbrand { margin:0; color:#ff8fd3; font-size:11px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; }
+    .event-intro-hero .intro-line { max-width:310px; margin:16px auto 20px; font-size:15px; line-height:1.4; }
+    .event-facts { display:grid; grid-template-columns:repeat(3,1fr); margin:22px 0 16px; text-align:center; }
+    .event-fact { padding:0 5px; border-right:1px solid rgba(255,255,255,.28); }
+    .event-fact:last-child { border-right:0; }
+    .event-fact b,.event-fact span { display:block; }
+    .event-fact b { margin-top:5px; font-size:12px; }
+    .event-fact span { margin-top:3px; color:#f3d7ef; font-size:10px; line-height:1.25; }
+    .event-fact .fact-icon { color:#ffb3e7; font-size:22px; line-height:1; }
+    .intro-card { margin-top:12px; padding:16px; border:1px solid rgba(255,156,227,.42); border-radius:19px; background:linear-gradient(145deg,rgba(45,13,57,.86),rgba(114,28,89,.74)); box-shadow:inset 0 1px rgba(255,255,255,.1),0 12px 28px rgba(23,4,28,.22); backdrop-filter:blur(12px); }
+    .intro-card h4 { margin:0 0 7px; font-size:16px; }
+    .intro-card p { margin:0; color:#f3dced; font-size:12px; line-height:1.45; }
+    .intro-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:9px; }
+    .intro-step { position:relative; min-height:78px; padding:11px 4px; border-radius:13px; background:rgba(255,255,255,.1); text-align:center; }
+    .intro-step:not(:last-child)::after { content:'→'; position:absolute; right:-8px; top:50%; z-index:2; color:#ff9ee3; transform:translateY(-50%); }
+    .intro-step b,.intro-step span { display:block; }
+    .intro-step b { color:#ff9ee3; font-size:21px; }
+    .intro-step span { margin-top:6px; font-size:10px; line-height:1.2; }
+    .agent-does { display:grid; gap:6px; margin-top:8px; }
+    .agent-does span { position:relative; padding-left:24px; color:#f8e7f4; font-size:11px; line-height:1.4; }
+    .agent-does span::before { content:'✓'; position:absolute; left:0; display:grid; place-items:center; width:16px; height:16px; border-radius:50%; color:#fff; background:rgba(255,255,255,.16); font-weight:900; }
+    .phone:has(.screen[data-panel="goal"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="goal"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .goal-poster { flex:0 0 auto; width:100%; min-height:100%; padding:74px 18px 28px; background:linear-gradient(180deg,rgba(38,7,48,.08),rgba(55,9,57,.3) 31%,rgba(68,10,63,.88) 58%,#d43478 100%),url('assets/agent-world-home-hero-v2.png') 58% top/cover fixed; }
+    .goal-brand { text-align:center; text-shadow:0 2px 8px #2b082d; }
+    .goal-brand strong,.goal-brand span { display:block; }
+    .goal-brand strong { font-size:17px; font-style:italic; text-transform:uppercase; }
+    .goal-brand span { color:#ff56b5; font-size:13px; font-weight:950; font-style:italic; letter-spacing:.04em; text-transform:uppercase; }
+    .goal-step { position:absolute; top:18px; right:18px; padding:8px 12px; border-radius:13px; color:#321435; background:#ffd95d; font-size:11px; font-weight:950; text-align:center; text-transform:uppercase; box-shadow:0 5px 16px rgba(42,8,46,.25); }
+    .goal-step span { display:block; margin-top:3px; letter-spacing:5px; }
+    .goal-head { max-width:280px; margin-top:34px; text-shadow:2px 3px 0 #35133d,0 4px 20px rgba(30,5,31,.35); }
+    .goal-head h2 { margin:0; font-size:37px; font-style:italic; line-height:.95; transform:skew(-4deg); }
+    .goal-head p { margin:16px 0 0; font-size:14px; font-weight:700; line-height:1.35; }
+    .poster-field { margin-top:18px; padding:0 12px 14px; border:1px solid rgba(255,221,121,.85); border-radius:4px 18px 18px; background:rgba(42,11,50,.78); backdrop-filter:blur(10px); }
+    .poster-label { display:inline-flex; align-items:center; gap:8px; min-height:38px; margin:-10px 0 10px -12px; padding:0 16px; border-radius:4px 4px 10px 0; background:linear-gradient(100deg,#ff2c8e,#7e185d); box-shadow:0 4px 0 rgba(255,119,187,.3); font-size:14px; font-style:italic; font-weight:950; text-transform:uppercase; transform:skew(-4deg); }
+    .poster-field textarea { min-height:88px; margin:0; border:0; color:#26172c; background:#fff8df; font-size:14px; font-weight:700; line-height:1.35; }
+    .poster-field .hint { margin:9px 2px 0; color:#f7dbea; font-size:11px; font-style:italic; }
+    .poster-field .privacy-gate { margin:10px 0 0; color:#fff4e4; background:rgba(255,255,255,.06); }
+    .attendance-title { margin:20px 0 10px; font-size:15px; font-style:italic; font-weight:950; text-transform:uppercase; }
+    .goal-poster .presence-options { gap:10px; }
+    .goal-poster .presence-card { min-height:112px; border-color:rgba(255,236,192,.65); color:#fff5e3; background:rgba(73,17,69,.72); }
+    .goal-poster .presence-card.active { border-color:#64f3ed; color:#2b1730; background:linear-gradient(145deg,#fff7cf,#ffd45b); box-shadow:0 0 0 2px #5af1ee; }
+    .goal-poster .goal-next { width:100%; min-height:64px; margin-top:22px; border:0; border-radius:22px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 12px 28px rgba(25,8,32,.25); }
+    .phone:has(.screen[data-panel="choose-agent"].active) .app-menu-toggle { display:none; }
+    .phone:has(.screen[data-panel="choose-agent"].active) .global-back { top:18px; left:18px; width:48px; height:48px; border-radius:50%; background:rgba(63,25,77,.78); }
+    .choose-poster { flex:0 0 auto; width:100%; min-height:100%; padding:72px 18px 30px; background:linear-gradient(180deg,rgba(42,8,54,.3),rgba(59,10,61,.56) 42%,#b82972 100%),url('assets/agent-world-venue-from-design.png') center top/cover fixed; }
+    .poster-brand { text-align:center; text-shadow:0 2px 8px #2b082d; }
+    .poster-brand strong,.poster-brand span { display:block; }
+    .poster-brand strong { font-size:22px; font-style:italic; text-transform:uppercase; }
+    .poster-brand span { margin-top:-4px; color:#ff36a4; font-size:19px; font-style:italic; font-weight:950; text-transform:uppercase; }
+    .poster-progress { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:18px 0 20px; }
+    .poster-progress i { height:6px; border-radius:999px; background:rgba(255,255,255,.65); }
+    .poster-progress i.on { background:#69f1ec; }
+    .choose-kicker { display:inline-block; padding:8px 14px; border:1px solid #ffd45b; border-radius:999px; color:#ffd45b; font-size:12px; font-style:italic; font-weight:950; }
+    .choose-head h2 { max-width:310px; margin:18px 0 8px; font-size:39px; font-style:italic; line-height:.95; text-shadow:2px 3px 0 #35133d; transform:skew(-4deg); }
+    .choose-head p { margin:0 0 18px; font-size:14px; line-height:1.4; }
+    .poster-agent { display:grid; grid-template-columns:68px 1fr 38px; gap:12px; align-items:center; width:100%; margin-top:12px; padding:13px; border:2px solid transparent; border-radius:18px; color:#2b1730; background:#fff8df; text-align:left; }
+    .poster-agent.active { border-color:#69f1ec; background:linear-gradient(135deg,#fff9df,#ffd85e); box-shadow:0 0 0 2px #ff43ca,0 10px 24px rgba(37,5,43,.25); }
+    .poster-avatar { width:68px; height:68px; border-radius:14px; background:url('assets/agent-world-home-hero-v2.png') 54% 62%/260% auto no-repeat; }
+    .poster-avatar.robot { background-image:url('assets/agent-conversation-portraits.png'); background-position:100% 30%; background-size:300% auto; }
+    .poster-agent strong { display:block; font-size:18px; font-style:italic; }
+    .poster-agent p { margin:3px 0 0; color:#4d3452; font-size:12px; line-height:1.3; }
+    .poster-agent .pick { display:grid; place-items:center; width:32px; height:32px; border:2px solid #421747; border-radius:50%; font-size:0; }
+    .poster-agent.active .pick { color:#fff; background:#421747; font-size:17px; }
+    .poster-agent .recommended { display:inline-block; margin-top:6px; padding:3px 8px; border-radius:999px; color:#3e1746; background:#ff92d1; font-size:10px; font-weight:900; }
+    .create-poster-agent { display:grid; grid-template-columns:54px 1fr; gap:12px; align-items:center; width:100%; margin-top:14px; padding:14px; border:2px dashed #ff8fe0; border-radius:18px; color:#fff6e9; background:rgba(71,14,67,.68); text-align:left; }
+    .create-poster-agent b { display:grid; place-items:center; width:54px; height:54px; border:1px solid #d349ba; border-radius:14px; font-size:30px; }
+    .create-poster-agent strong { display:block; font-size:16px; font-style:italic; }
+    .create-poster-agent span { display:block; margin-top:3px; color:#f2daec; font-size:11px; line-height:1.35; }
+    .choose-continue { width:100%; min-height:64px; margin-top:28px; border:0; border-radius:23px; color:#24132d; background:linear-gradient(90deg,#6ff5ef,#57e0dd); font-size:17px; font-style:italic; font-weight:950; text-transform:uppercase; box-shadow:0 0 0 2px #ff4bd0,0 12px 28px rgba(25,8,32,.3); }
+  </style>
+</head>
+<body>
+  <button class="menu-toggle" aria-label="Open screen menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  <button class="menu-scrim" aria-label="Close screen menu"></button>
+  <main class="workbench">
+    <aside class="notes">
+      <h1>Agent Mixer</h1>
+      <p>Haunted Hacks: Real-Time AI Edition demo. Click each step to review the complete participant journey.</p>
+      <nav class="step-list" aria-label="Prototype screens">
+        <button class="step" aria-selected="true" data-screen="home"><span>1</span><span>Home</span></button>
+        <button class="step" aria-selected="false" data-screen="welcome"><span>2</span><span>Event introduction</span></button>
+        <button class="step" aria-selected="false" data-screen="goal"><span>3</span><span>Event goal</span></button>
+        <button class="step" aria-selected="false" data-screen="choose-agent"><span>4</span><span>Choose agent</span></button>
+        <button class="step" aria-selected="false" data-screen="create-agent"><span>5</span><span>Create agent</span></button>
+        <button class="step" aria-selected="false" data-screen="import"><span>6</span><span>Import sources</span></button>
+        <button class="step" aria-selected="false" data-screen="review-knowledge"><span>7</span><span>Review knowledge</span></button>
+        <button class="step" aria-selected="false" data-screen="profile"><span>8</span><span>Ready to join</span></button>
+        <button class="step" aria-selected="false" data-screen="live"><span>9</span><span>Agent World</span></button>
+        <button class="step" aria-selected="false" data-screen="matches"><span>10</span><span>Matches</span></button>
+        <button class="step" aria-selected="false" data-screen="match"><span>11</span><span>Mutual Connect</span></button>
+        <button class="step" aria-selected="false" data-screen="chats"><span>12</span><span>Human connections</span></button>
+        <button class="step" aria-selected="false" data-screen="chat"><span>13</span><span>Human chat</span></button>
+        <button class="step" aria-selected="false" data-screen="meet-choice"><span>14</span><span>Choose meeting</span></button>
+        <button class="step" aria-selected="false" data-screen="meeting"><span>15</span><span>Meet now</span></button>
+        <button class="step" aria-selected="false" data-screen="calendar"><span>16</span><span>Schedule later</span></button>
+        <button class="step" aria-selected="false" data-screen="recap"><span>17</span><span>Event recap</span></button>
+        <button class="step" aria-selected="false" data-screen="agents"><span>18</span><span>Agent library</span></button>
+        <button class="step" aria-selected="false" data-screen="knowledge"><span>19</span><span>Knowledge settings</span></button>
+        <button class="step" aria-selected="false" data-screen="settings"><span>20</span><span>Integrations</span></button>
+      </nav>
+      <button class="secondary" data-reset-demo style="width:100%;margin-top:14px">Reset demo state</button>
+    </aside>
+
+    <section class="stage">
+      <div>
+        <div class="phone" aria-label="Mobile preview">
+          <button class="app-menu-toggle" aria-label="Open app navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+          <button class="global-back" aria-label="Back to previous screen">←</button>
+          <button class="app-menu-scrim" aria-label="Close app navigation"></button>
+          <nav class="app-drawer" aria-label="Main app navigation">
+            <h3>Agent Mixer</h3>
+            <button class="app-nav-item active" data-next="home"><span>Events</span><small>Active & past</small></button>
+            <button class="app-nav-item" data-next="agents"><span>Agents</span><small>Identity & knowledge</small></button>
+            <button class="app-nav-item" data-next="matches"><span>Matches</span><small>Connect or pass</small></button>
+            <button class="app-nav-item" data-next="chats"><span>Chats</span><small>People & meetings</small></button>
+          </nav>
+          <section class="screen active" data-panel="home">
+            <div class="home-screen">
+              <section class="home-hero">
+                <div class="home-hero-content">
+                  <button class="home-avatar" aria-label="Open profile">JU</button>
+                  <p class="home-greeting">Good afternoon</p>
+                  <h3 class="home-name">Julius</h3>
+                  <p class="home-kicker">Agent Mixer</p>
+                  <h2 class="home-manifesto">Your agent<br>works<br>the room.</h2>
+                  <p class="home-tagline">You only have the conversations worth having.</p>
+                  <button class="hero-enter" data-next="welcome">Enter Haunted Hacks <span>→</span></button>
+                </div>
+              </section>
+              <section class="home-feed">
+                <div class="live-card"><div class="mission-row"><span class="mission-label">Haunted Hacks · live</span><button class="text-button" data-next="recap">View recap →</button></div><button data-next="live" style="position:static;width:100%;padding:0;border:0;color:inherit;background:transparent;text-align:left"><h4><span data-agent-name>Shimo</span> is networking</h4><p class="match-live">1 new match</p><span class="agent-faces"><i class="mini-face">MC</i><i class="mini-face">AK</i><i class="mini-face">RP</i></span><span class="card-arrow">›</span><span class="live-metrics"><b>▣ &nbsp;3 active conversations</b><b>▥ &nbsp;Strongest fit 94%</b></span></button></div>
+                <div class="home-section-head"><h4>Recent activity</h4><button class="text-button" data-next="recap">View all →</button></div>
+                <div class="activity-list">
+                  <button class="activity-card" data-next="matches"><span class="activity-thumb"></span><span><strong>New connection unlocked</strong><p>Meet Maya · 94% technical cofounder fit</p></span><span class="card-arrow">›</span></button>
+                  <button class="activity-card" data-next="live"><span class="activity-thumb"></span><span><strong>2 more conversations in queue</strong><span class="queue-faces"><i class="mini-face">MC</i><i class="mini-face">AK</i><i class="mini-face">RP</i><i class="queue-more">+2</i></span></span><span class="card-arrow">›</span></button>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="agents">
+            <div class="status-bar"></div>
+            <header class="app-header"><h3>My agents</h3><button class="icon-button">＋</button></header>
+            <p class="hint" style="margin:0 20px 18px">Bind multiple agents, then choose exactly one to represent you at each event.</p>
+            <div class="agent-card"><div class="avatar">SH</div><div><strong>Shimo</strong><p>Networking · product and founders</p><span class="status-pill">Default</span></div><span class="selected-dot"></span></div>
+            <div class="agent-card"><div class="avatar" style="background:#307b68">RC</div><div><strong>Research Copilot</strong><p>Conferences · technical research</p></div><button class="text-button">Select</button></div>
+            <div class="agent-card"><div class="avatar" style="background:#9a5b32">BY</div><div><strong>External agent</strong><p>Connected through Agent Relay</p></div><button class="text-button">Manage</button></div>
+            <button class="secondary" data-next="knowledge" style="margin:10px 20px;width:calc(100% - 40px)">Edit Shimo’s knowledge</button>
+            <nav class="bottom-nav"><button data-next="home">Events</button><button class="active">Agents</button><button data-next="matches">Matches</button><button data-next="chats">Chats</button></nav>
+          </section>
+
+          <section class="screen" data-panel="knowledge">
+            <div class="status-bar"></div>
+            <header class="app-header"><h3>Shimo’s knowledge</h3><button class="icon-button">•••</button></header>
+            <div class="knowledge-block"><h4>Public knowledge</h4><p>Information Shimo may share when introducing you.</p><div class="source-item"><span>LinkedIn profile</span><strong>Synced</strong></div><div class="source-item"><span>julius.design</span><strong>12 pages</strong></div><div class="source-item"><span>Resume.pdf</span><strong>Reviewed</strong></div><button class="secondary" style="width:100%;min-height:40px">Import source</button></div>
+            <div class="knowledge-block private"><h4>Private knowledge</h4><p>Used only for internal judgment. Its contents can never be quoted, summarized, or revealed externally.</p><div class="source-item"><span>Deal-breakers and preferences</span><strong>Private</strong></div><div class="source-item"><span>People to avoid</span><strong>Private</strong></div><button class="secondary" style="width:100%;min-height:40px">Edit private knowledge</button></div>
+            <div class="screen-footer"><button class="primary" data-next="home" style="width:100%">Save agent</button></div>
+          </section>
+
+          <section class="screen" data-panel="welcome">
+            <div class="event-intro">
+              <div class="event-intro-hero">
+                <span class="eyebrow">Event</span>
+                <h2>Haunted Hacks</h2>
+                <p class="subbrand">Real-Time AI · Agent Mixer</p>
+                <p class="intro-line">Your AI agent meets, talks, and finds the people worth knowing for you.</p>
+              </div>
+              <div class="event-facts">
+                <div class="event-fact"><span class="fact-icon">▣</span><b>Oct 31, 2026</b><span>11:00 AM–6:00 PM</span></div>
+                <div class="event-fact"><span class="fact-icon">⌖</span><b>San Francisco</b><span>In person</span></div>
+                <div class="event-fact"><span class="fact-icon">♧</span><b>Open link</b><span>No approval needed</span></div>
+              </div>
+              <div class="intro-card"><h4>What is this event?</h4><p>A real-time AI hackathon hosted by Terse and AgentRelay. Agent Mixer helps you discover collaborators while you build.</p></div>
+              <div class="intro-card"><h4>How Agent Mixer works</h4><div class="intro-steps"><div class="intro-step"><b>◎</b><span>Set your goal</span></div><div class="intro-step"><b>◉</b><span>Choose an agent</span></div><div class="intro-step"><b>◇</b><span>Agents meet</span></div><div class="intro-step"><b>♡</b><span>You connect</span></div></div></div>
+              <div class="intro-card"><h4>What your agent will do</h4><div class="agent-does"><span>Introduce only your approved public profile and event goal</span><span>Hold several relevant one-to-one conversations</span><span>Use private knowledge to judge fit without revealing it</span><span>Bring you the best matches, evidence, and an opener</span></div></div>
+              <div class="intro-card"><h4>Do I need to be there in person?</h4><p>No. Your agent can participate for you. If you are onsite, mutual matches can use Meet now; otherwise, schedule a later call.</p></div>
+            </div>
+            <div class="content button-row">
+              <button class="primary" data-next="goal">Set my event goal →</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="goal">
+            <div class="goal-poster">
+              <div class="goal-brand"><strong>Haunted Hacks</strong><span>Agent Mixer</span></div>
+              <div class="goal-step">Step 1 of 3<span>● ○ ○</span></div>
+              <div class="goal-head"><h2>What should your agent accomplish?</h2><p>Set a goal for this event. It helps your agent find the right people and start the right conversations.</p></div>
+              <div class="poster-field">
+                <div class="poster-label">◎ &nbsp; Shareable event goal</div>
+                <textarea id="event-goal">I want to meet a technical collaborator building durable multi-agent products with Terse and Agent Relay.</textarea>
+                <p class="hint">Other agents may hear this exact sentence. You’ll confirm it before networking starts.</p>
+              </div>
+              <div class="poster-field">
+                <div class="poster-label">▣ &nbsp; Private intent <small>(optional)</small></div>
+                <textarea placeholder="Constraints or preferences your agent may use internally…">Prioritize someone who can prototype this weekend. Do not mention fundraising plans.</textarea>
+                <div class="privacy-gate"><strong>Private means private.</strong><br>Your agent may use this to decide, but can never quote, summarize, imply, or transmit it.</div>
+              </div>
+              <div class="attendance-title">▣ &nbsp; Will you be at the venue?</div>
+              <div class="presence-options">
+                <button class="presence-card active" data-presence="here"><strong>I’ll be there</strong><span>Unlock Meet now after a mutual connection</span></button>
+                <button class="presence-card" data-presence="remote"><strong>Agent only</strong><span>Your agent attends; schedule a later call</span></button>
+              </div>
+              <button class="goal-next" data-next="choose-agent">Choose my agent →</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="choose-agent">
+            <div class="choose-poster">
+              <div class="poster-brand"><strong>Haunted Hacks</strong><span>Agent Mixer</span></div>
+              <div class="poster-progress"><i class="on"></i><i class="on"></i><i></i></div>
+              <div class="choose-kicker">Haunted Hacks · Step 2 of 3</div>
+              <div class="choose-head"><h2>Who represents you?</h2><p>You can keep multiple long-lived agents, but only one can join this event.</p></div>
+              <button class="poster-agent active" data-select-agent="Shimo"><span class="poster-avatar"></span><span><strong>Shimo</strong><p>Product, founders, collaborations</p><span class="recommended">★ Recommended</span></span><span class="pick">✓</span></button>
+              <button class="poster-agent" data-select-agent="Research Copilot"><span class="poster-avatar robot"></span><span><strong>Research Copilot</strong><p>Technical research and conferences</p></span><span class="pick">✓</span></button>
+              <button class="create-poster-agent" data-next="create-agent"><b>＋</b><span><strong>Create a new agent</strong><span>Start manually, import from LinkedIn/GitHub, or connect an external Agent Relay agent.</span></span></button>
+              <button class="choose-continue" data-next="profile">Continue with <span data-continue-agent>Shimo</span> →</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="create-agent">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="choose-agent" aria-label="Back">←</button><span class="hint">Create a long-lived agent</span></header>
+            <div class="content grow">
+              <h2>How do you want to start?</h2>
+              <div class="choice-stack">
+                <button class="choice-card" data-next="import"><strong>Import my professional profile</strong><span>LinkedIn, GitHub, website, or résumé. Imported material stays private until you approve public fields.</span></button>
+                <button class="choice-card" data-create-mode="manual"><strong>Set up manually</strong><span>Fastest option: name, role, one-sentence goal, and optional bio.</span></button>
+                <button class="choice-card"><strong>Connect an external agent</strong><span>Verify an Agent Relay address and grant access only for this event.</span></button>
+              </div>
+              <div data-manual-fields hidden>
+                <label>Agent name</label><input value="Shimo" />
+                <label>Your role</label><div class="chips"><button class="chip">Founder</button><button class="chip">Investor</button><button class="chip active">Designer</button><button class="chip">Engineer</button><button class="chip">Other</button></div>
+                <label>Public bio <span style="font-weight:400;color:var(--muted)">· optional</span></label><textarea>I design social products and agent experiences.</textarea>
+                <button class="primary" data-next="review-knowledge" style="width:100%">Review knowledge</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="import">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="create-agent" aria-label="Back">←</button><span class="hint">Private by default</span></header>
+            <div class="content grow">
+              <h2>Import what your agent should know</h2>
+              <p class="lede">We use these sources to propose a profile. Nothing becomes public automatically.</p>
+              <div class="source-actions"><button class="secondary" data-source>LinkedIn</button><button class="secondary" data-source>GitHub</button><button class="secondary" data-source>Personal website</button><button class="secondary" data-source>Résumé / PDF</button></div>
+              <div class="knowledge-block private"><h4>Import boundary</h4><p>Raw source files remain private. Agent Mixer extracts candidate public facts, shows where each fact came from, and waits for your approval.</p></div>
+              <div class="list-row" data-import-status><strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p></div>
+            </div>
+            <div class="screen-footer"><button class="primary" data-next="review-knowledge" style="width:100%">Generate draft profile</button><button class="secondary" data-next="review-knowledge" style="width:100%;margin-top:7px">Skip import</button></div>
+          </section>
+
+          <section class="screen" data-panel="review-knowledge">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="import" aria-label="Back">←</button><span class="hint">Review before publishing</span></header>
+            <div class="content grow">
+              <h2>Approve your agent’s knowledge</h2>
+              <div class="knowledge-block"><h4>Public knowledge</h4><p>Other agents may query or quote only the facts you approve here.</p><div class="source-item"><span>Product designer building agent experiences</span><strong>Approve</strong></div><div class="source-item"><span>Portfolio · julius.design</span><strong>Approve</strong></div><div class="source-item"><span>Interested in technical collaborators</span><strong>Edit</strong></div></div>
+              <div class="knowledge-block private"><h4>Private knowledge</h4><p>Used only for internal judgment. It can never be quoted, summarized, paraphrased, implied, or sent through Agent Relay.</p><div class="source-item"><span>Imported source documents</span><strong>Private</strong></div><div class="source-item"><span>Preferences and deal-breakers</span><strong>Private</strong></div></div>
+              <div class="privacy-gate">Only approved public knowledge, your confirmed event goal, and the current conversation may leave your agent.</div>
+            </div>
+            <div class="screen-footer"><button class="primary" data-next="profile" style="width:100%">Approve and use this agent</button></div>
+          </section>
+
+          <section class="screen" data-panel="profile">
+            <div class="status-bar"></div>
+            <div class="content">
+              <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+              <span class="event-tag">Haunted Hacks · Step 3 of 3</span>
+              <h2>Ready for Agent World</h2>
+              <p class="lede">Confirm exactly what Shimo will carry into this event.</p>
+              <div class="setup-checklist">
+                <div class="setup-check"><i>✓</i><span><strong>Representative</strong><br><small data-selected-agent-copy>Shimo · one agent for this event</small></span><button class="text-button" data-next="choose-agent">Change</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Shareable goal</strong><br><small>Technical collaborator for durable multi-agent products</small></span><button class="text-button" data-next="goal">Edit</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Private intent</strong><br><small>Available for internal decisions only</small></span><button class="text-button" data-next="goal">Review</button></div>
+                <div class="setup-check"><i>✓</i><span><strong>Attendance</strong><br><small data-attendance-copy>You are at the venue · Meet now enabled</small></span><button class="text-button" data-next="goal">Change</button></div>
+              </div>
+              <div class="switch-row" style="margin-left:0;margin-right:0"><div><strong>Automatic matching</strong><span>Let Shimo propose strong matches</span></div><button class="switch" aria-label="Automatic matching on"></button></div>
+              <label>Conversation limits</label>
+              <div class="chips"><button class="chip active">3 at once</button><button class="chip">3 min normally</button><button class="chip">6 min high fit</button></div>
+              <p class="hint">You can watch full transcripts. The only live control is End conversation.</p>
+            </div>
+            <div class="screen-footer"><button class="primary next" style="width:100%">Start networking</button></div>
+          </section>
+
+          <section class="screen" data-panel="live">
+            <iframe class="game-frame" src="vice-agent-world.html" title="Live agent venue"></iframe>
+          </section>
+
+          <section class="screen" data-panel="matches">
+            <div class="status-bar"></div>
+            <header class="app-header"><h3>Matches</h3><button class="icon-button" aria-label="New matches" data-match-badge>3</button></header>
+            <div class="tabs" data-match-tabs><button class="tab active" data-match-tab="new">New · 3</button><button class="tab" data-match-tab="connected">Connected · 0</button><button class="tab" data-match-tab="passed">Passed · 0</button></div>
+            <div class="match-list" data-match-list="new">
+              <button class="list-row match-card" data-person="maya"><span class="match-score">94%</span><strong>Maya Chen · Engineer</strong><p>Strong cofounder fit · Here now · New 1 min ago</p><span class="status-pill">Review match</span></button>
+              <button class="list-row match-card" data-person="alex"><span class="match-score">81%</span><strong>Alex Kim · Designer</strong><p>Potential product collaborator · Agent only</p><span class="status-pill">Review match</span></button>
+              <button class="list-row match-card" data-person="rina"><span class="match-score">78%</span><strong>Rina Patel · Investor</strong><p>Interested in event infrastructure · Here now</p><span class="status-pill">Review match</span></button>
+            </div>
+            <div class="match-list" data-match-list="connected" hidden><div class="list-row"><strong>No connected matches yet</strong><p>Human chat opens after both people choose Connect.</p></div></div>
+            <div class="match-list" data-match-list="passed" hidden><div class="list-row"><strong>No passed matches</strong><p>Passed introductions will stay recoverable here.</p></div></div>
+            <nav class="bottom-nav"><button data-next="home">Events</button><button data-next="agents">Agents</button><button class="active">Matches</button><button data-next="chats">Chats</button></nav>
+          </section>
+
+          <section class="screen" data-panel="match">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="matches" aria-label="Back to matches">←</button><span class="hint" data-match-presence>Here now · Main stage</span></header>
+            <div class="match-hero">
+              <div class="pair"><div class="avatar">JU</div><div class="avatar">MY</div></div>
+              <h2>Meet Maya</h2>
+              <div class="role">Engineer · Durable AI systems</div>
+            </div>
+            <div class="reason"><h4>Why your agents chose this match <span class="status-pill" style="margin:0">94% fit</span></h4><p>You both want to build tools for AI agents, and your skills cover opposite sides of the same product.</p><button class="text-button" data-evidence-toggle style="margin-top:8px">View conversation evidence</button><p data-evidence hidden style="margin-top:8px">Maya's agent said she wants a product-minded collaborator for durable multi-agent systems. Your approved event goal asks for a technical cofounder in agent products.</p></div>
+            <div class="offer-grid">
+              <div class="offer"><strong>You bring</strong><span>Product design, positioning, and user research</span></div>
+              <div class="offer"><strong>Maya brings</strong><span>Agent infrastructure and distributed systems</span></div>
+            </div>
+            <div class="reason" style="margin-top:10px"><h4>Suggested opener</h4><p>“If agents could attend one kind of event for us, which would be most valuable?”</p></div>
+            <div class="system-note" data-match-state-copy>Neither side has connected yet. Contact details stay private.</div>
+            <div class="match-actions"><button class="secondary" data-pass-match>Pass</button><button class="primary" data-connect-match>Connect</button></div>
+          </section>
+
+          <section class="screen" data-panel="chats">
+            <div class="status-bar"></div>
+            <header class="app-header"><h3>Chats</h3><button class="icon-button" data-chat-count>0</button></header>
+            <div data-chats-list><div class="list-row"><strong>No human chats yet</strong><p>A private chat opens only after both people choose Connect.</p></div></div>
+            <nav class="bottom-nav"><button data-next="home">Events</button><button data-next="agents">Agents</button><button data-next="matches">Matches</button><button class="active">Chats</button></nav>
+          </section>
+
+          <section class="screen" data-panel="chat">
+            <div class="status-bar"></div>
+            <header class="topline">
+              <button class="flow-back" data-next="chats" aria-label="Back to chats">←</button>
+              <div style="flex:1"><h3>Maya</h3><span class="live">Here now · Human chat</span></div>
+              <button class="icon-button" data-safety-toggle aria-label="Conversation safety options">•••</button>
+            </header>
+            <div class="safety-menu" data-safety-menu><button>Block</button><button>Report</button><button>Unmatch</button></div>
+            <div class="presence-line" data-presence-copy>Both of you are at Haunted Hacks · Meet now is available</div>
+            <div class="system-note">You both chose Connect. Your human chat is now private.</div>
+            <div class="opener-card" data-opener-card><strong>Suggested opener</strong><br>“If agents could attend one kind of event for us, which would be most valuable?”<br><button data-use-opener>Use opener</button></div>
+            <div class="human-chat grow">
+              <div class="message"><div class="avatar" style="background:#307b68">M</div><div><span class="speaker">Maya</span><p>Hey Julius — glad our agents introduced us.</p></div></div>
+              <div data-human-messages></div>
+            </div>
+            <div class="screen-footer">
+              <div class="composer"><input data-chat-input aria-label="Message Maya" placeholder="Message Maya…"><button data-send-message aria-label="Send message">↑</button></div>
+              <span class="composer-status" data-composer-status></span>
+              <button class="primary" style="width:100%;margin-top:6px" data-arrange-action>Plan a meeting</button>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="meet-choice">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="chat" aria-label="Back to chat">←</button><span class="hint">Maya · Human connection</span></header>
+            <div class="content grow">
+              <h2>How do you want to meet?</h2>
+              <p class="lede">These are separate actions. Meeting at the venue never creates a calendar event.</p>
+              <div class="choice-stack">
+                <button class="choice-card" data-next="meeting" data-meet-now-option><strong>Meet now at Haunted Hacks</strong><span>Available because both of you are onsite. Maya must accept before the meeting point and identification details appear.</span></button>
+                <button class="choice-card" data-next="calendar"><strong>Schedule for later</strong><span>Create a normal Google Calendar invitation. Google handles acceptance, decline, new-time proposals, reminders, and cancellation.</span></button>
+              </div>
+              <div class="system-note" data-meeting-availability>Both of you are at Haunted Hacks, so either option is available.</div>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="meeting">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="chat" aria-label="Back to chat">←</button><span class="hint">Maya · Haunted Hacks</span></header>
+            <div class="meeting-title"><h2>Meet now</h2><p class="lede">Send Maya a request before the meeting point is revealed.</p></div>
+            <div class="meeting-mode">
+              <div class="meeting-state" data-meet-state>Ready to request</div>
+              <div class="meeting-details" data-meeting-card hidden>
+              <div class="detail"><div class="detail-icon">P</div><div><h4>Meeting point</h4><p>By the YC banner near the main stage</p></div></div>
+              <div class="detail"><div class="detail-icon">T</div><div><h4>When</h4><p>Now · Maya accepted</p></div></div>
+              <div class="detail"><div class="detail-icon">O</div><div><h4>Start with this</h4><p>“If agents could attend one kind of event for us, which would be most valuable?”</p></div></div>
+              <div class="detail"><div class="detail-icon">M</div><div><h4>Look for</h4><p>Shared by Maya for this meeting only · green jacket · engineer badge</p></div></div>
+              </div>
+              <div class="meet-action"><button class="primary" style="width:100%" data-meet-primary>Send Meet now request</button><button class="secondary" style="width:100%;margin-top:8px" data-next="meet-choice">Choose another option</button></div>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="calendar">
+            <div class="status-bar"></div>
+            <header class="topline"><button class="flow-back" data-next="meet-choice" aria-label="Back">←</button><span class="hint">Maya · Schedule later</span></header>
+            <div class="meeting-title"><h2>Schedule a meeting</h2><p class="lede">Review the details, then hand off to Google Calendar.</p></div>
+            <div class="meeting-mode">
+              <div class="system-note">Agent Mixer creates the invitation; Google Calendar owns the response and final event record.</div>
+              <div class="meeting-details">
+              <div class="detail"><div class="detail-icon">C</div><div><h4>Google Calendar</h4><p>Choose a time, then Agent Mixer sends a normal calendar invitation. Maya can accept, decline, or propose a new time in Google Calendar.</p></div></div>
+              <div class="detail"><div class="detail-icon">V</div><div><h4>Meeting format</h4><p>Google Meet link added automatically</p></div></div>
+              <div><h4>Suggested times · local time</h4><div class="slot-grid"><button class="slot active">Tue · 3:00 PM</button><button class="slot">Wed · 11:00 AM</button></div></div>
+              </div>
+              <div class="meeting-state" data-calendar-state>Not sent</div>
+              <div class="calendar-states"><span>Invitation sent</span><span>Accepted</span><span>Declined</span><span>New time proposed</span><span>Cancelled</span></div>
+              <div class="meet-action"><button class="primary" style="width:100%" data-calendar-primary>Review invitation</button><button class="secondary" style="width:100%;margin-top:8px" data-next="meet-choice">Choose another option</button></div>
+            </div>
+          </section>
+
+          <section class="screen" data-panel="recap">
+            <div class="status-bar"></div>
+            <header class="app-header"><div><span class="hint">Haunted Hacks: Real-Time AI Edition · Generated 8:45 PM</span><h3>Your event recap</h3></div><button class="icon-button" data-share-recap aria-label="Share recap">↗</button></header>
+            <div class="stat-grid"><div class="stat"><strong>8</strong><span>conversations</span></div><div class="stat"><strong>3</strong><span>matches</span></div><div class="stat"><strong>1</strong><span>meeting</span></div></div>
+            <div class="section-title"><h4>Priority follow-ups</h4><button class="text-button" data-recap-see-all>See all</button></div>
+            <div class="list-row"><strong>1 · Maya Chen <span class="status-pill" style="margin:0">Agent inference · 94%</span></strong><p>Best cofounder fit based on complementary skills and aligned timing.</p><div class="inline-actions"><button class="primary" data-next="meeting">Open meeting</button><button class="secondary" data-next="chat">View chat</button></div></div>
+            <div class="list-row"><strong>2 · Alex Kim</strong><p>Potential design partner. Follow up with the demo recording.</p><div class="inline-actions"><button class="primary" data-next="chat">Message</button><button class="secondary">View evidence</button></div></div>
+            <div class="section-title"><h4>Agent learned 2 things</h4><span class="hint">Review before saving</span></div>
+            <div class="knowledge-block private"><h4>Private by default</h4><p>You prefer collaborators who can prototype durable systems quickly.</p><div class="memory-choice"><button data-memory-choice>Save</button><button data-memory-choice>Don't save</button></div></div>
+            <div class="knowledge-block"><h4>Proposed public memory</h4><p>You are exploring event experiences where personal agents create prepared human introductions.</p><div class="memory-choice"><button data-memory-choice>Save</button><button data-memory-choice>Don't save</button></div></div>
+            <div class="screen-footer"><button class="primary" data-next="home" style="width:100%">Back to home</button></div>
+          </section>
+
+          <section class="screen" data-panel="settings">
+            <div class="status-bar"></div>
+            <header class="app-header"><h3>Integrations</h3><button class="icon-button">JU</button></header>
+            <div class="list-row"><strong>Google account</strong><p>Signed in · julius@example.com</p><span class="status-pill">Connected</span></div>
+            <div class="list-row"><strong>Google Calendar</strong><p>Create invitations only after you choose to schedule.</p><button class="text-button">Manage</button></div>
+            <div class="list-row"><strong>YC Events + Luma + Partiful</strong><p>This demo opens from the Haunted Hacks page on YC Events; organizers can also distribute Agent Mixer through Luma or Partiful.</p><span class="status-pill">Event sources</span></div>
+            <div class="list-row"><strong>LinkedIn, website, resume</strong><p>Sources used to build and refresh your public profile.</p><button class="text-button" data-next="knowledge">Review data</button></div>
+            <div class="list-row"><strong>Bring your own agent</strong><p>Connect through Agent Relay and select it per event.</p><button class="text-button" data-next="agents">Manage agents</button></div>
+            <div class="knowledge-block private"><h4>Privacy boundary</h4><p>Private knowledge stays internal even when another agent asks for it. Only approved public fields and your event goal can leave your agent.</p></div>
+            <nav class="bottom-nav"><button data-next="home">Events</button><button data-next="agents">Agents</button><button data-next="matches">Matches</button><button data-next="chats">Chats</button></nav>
+          </section>
+        </div>
+        <div class="frame-note">390 × 780 Safari viewport · mobile web app prototype</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const steps = [...document.querySelectorAll('.step')];
+    const panels = [...document.querySelectorAll('.screen')];
+    const defaultState = { presence:'here', selectedAgent:'Shimo', match:'new', meeting:'ready', calendar:'draft', selectedMatchTab:'new' };
+    let prototypeState = { ...defaultState, ...JSON.parse(sessionStorage.getItem('agentMixerPrototype') || '{}') };
+    let screenHistory = [];
+    const fallbackBack = { welcome:'home', goal:'welcome', 'choose-agent':'goal', 'create-agent':'choose-agent', import:'create-agent', 'review-knowledge':'import', profile:'choose-agent', live:'profile', matches:'live', match:'matches', chats:'matches', chat:'chats', 'meet-choice':'chat', meeting:'meet-choice', calendar:'meet-choice', recap:'home', agents:'home', knowledge:'agents', settings:'home' };
+    const saveState = () => sessionStorage.setItem('agentMixerPrototype', JSON.stringify(prototypeState));
+    document.querySelector('[data-reset-demo]').addEventListener('click', () => { sessionStorage.removeItem('agentMixerPrototype'); location.reload(); });
+    const show = (id, record = true) => {
+      const current = panels.find((panel) => panel.classList.contains('active'))?.dataset.panel;
+      if (record && current && current !== id) screenHistory.push(current);
+      steps.forEach((step) => step.setAttribute('aria-selected', String(step.dataset.screen === id)));
+      panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === id));
+      document.querySelectorAll('.app-nav-item').forEach((item) => item.classList.toggle('active', item.dataset.next === id));
+      const targetPanel = panels.find((panel) => panel.dataset.panel === id);
+      phone.classList.toggle('show-global-back', id !== 'home' && !targetPanel.querySelector('.flow-back'));
+      if (id === 'matches') renderMatches();
+      if (id === 'match') renderMatch();
+      if (id === 'chats') renderChats();
+      if (id === 'meeting') renderMeeting();
+      if (id === 'calendar') renderMeeting();
+      if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
+    };
+    const menuToggle = document.querySelector('.menu-toggle');
+    const setMenu = (open) => {
+      document.body.classList.toggle('menu-open', open);
+      menuToggle.setAttribute('aria-expanded', String(open));
+    };
+    menuToggle.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')));
+    document.querySelector('.menu-scrim').addEventListener('click', () => setMenu(false));
+    steps.forEach((step) => step.addEventListener('click', () => { show(step.dataset.screen); setMenu(false); }));
+    const phone = document.querySelector('.phone');
+    document.querySelector('.global-back').addEventListener('click', () => {
+      const current = panels.find((panel) => panel.classList.contains('active'))?.dataset.panel;
+      const previous = screenHistory.pop() || fallbackBack[current] || 'home';
+      show(previous, false);
+    });
+    const appMenuToggle = document.querySelector('.app-menu-toggle');
+    const setAppMenu = (open) => {
+      phone.classList.toggle('app-menu-open', open);
+      appMenuToggle.setAttribute('aria-expanded', String(open));
+    };
+    appMenuToggle.addEventListener('click', () => setAppMenu(!phone.classList.contains('app-menu-open')));
+    document.querySelector('.app-menu-scrim').addEventListener('click', () => setAppMenu(false));
+    document.querySelectorAll('.app-nav-item').forEach((item) => item.addEventListener('click', () => setAppMenu(false)));
+    document.querySelectorAll('.next, [data-next]').forEach((button) => button.addEventListener('click', () => {
+      if (button.dataset.next) return show(button.dataset.next);
+      const current = panels.findIndex((panel) => panel.classList.contains('active'));
+      show(panels[Math.min(current + 1, panels.length - 1)].dataset.panel);
+    }));
+    const requestedScreen = location.hash.slice(1);
+    if (panels.some((panel) => panel.dataset.panel === requestedScreen)) show(requestedScreen);
+    addEventListener('hashchange', () => { const id=location.hash.slice(1); if(panels.some((panel) => panel.dataset.panel === id)) show(id); });
+    document.querySelectorAll('.chips').forEach((group) => group.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => {
+      group.querySelectorAll('.chip').forEach((item) => item.classList.remove('active'));
+      chip.classList.add('active');
+    })));
+    const applyPresence = (mode) => {
+      prototypeState.presence = mode;
+      saveState();
+      document.querySelectorAll('.presence-card').forEach((card) => card.classList.toggle('active', card.dataset.presence === mode));
+      const remote = mode === 'remote';
+      document.querySelector('[data-presence-copy]').textContent = remote ? 'You are joining through your agent · Maya is here now · Schedule for later' : 'You and Maya are both at Haunted Hacks · Meet now is available';
+      document.querySelector('[data-arrange-action]').textContent = remote ? 'Schedule for later' : 'Plan a meeting';
+      document.querySelector('[data-attendance-copy]').textContent = remote ? 'Agent only · Schedule later' : 'You are at the venue · Meet now enabled';
+      document.querySelector('[data-meeting-availability]').textContent = remote ? 'You are not onsite, so Meet now is unavailable. Schedule a later meeting instead.' : 'Both of you are at Haunted Hacks, so either option is available.';
+      document.querySelector('[data-meet-now-option]').disabled = remote;
+    };
+    document.querySelectorAll('.presence-card').forEach((card) => card.addEventListener('click', () => applyPresence(card.dataset.presence)));
+    document.querySelectorAll('[data-select-agent]').forEach((button) => button.addEventListener('click', () => {
+      prototypeState.selectedAgent=button.dataset.selectAgent; saveState();
+      document.querySelector('[data-selected-agent-copy]').textContent=`${prototypeState.selectedAgent} · one agent for this event`;
+      document.querySelector('[data-continue-agent]').textContent=prototypeState.selectedAgent;
+      document.querySelectorAll('[data-select-agent]').forEach((item) => item.classList.toggle('active', item===button));
+    }));
+    document.querySelector('[data-create-mode="manual"]').addEventListener('click', () => {
+      document.querySelector('[data-manual-fields]').hidden=false;
+      document.querySelector('[data-manual-fields]').scrollIntoView({block:'start',behavior:'smooth'});
+    });
+    document.querySelectorAll('[data-source]').forEach((button) => button.addEventListener('click', () => {
+      button.classList.toggle('primary'); button.classList.toggle('secondary');
+      const selected=[...document.querySelectorAll('[data-source].primary')].map((item)=>item.textContent.trim());
+      document.querySelector('[data-import-status]').innerHTML=selected.length?`<strong>${selected.length} source${selected.length>1?'s':''} ready</strong><p>${selected.join(' · ')} · Raw data remains private until review.</p>`:'<strong>No sources selected</strong><p>Add at least one source, or skip and finish manually.</p>';
+    }));
+
+    const renderMatches = () => {
+      const tab = prototypeState.selectedMatchTab;
+      document.querySelectorAll('[data-match-tab]').forEach((item) => item.classList.toggle('active', item.dataset.matchTab === tab));
+      document.querySelectorAll('[data-match-list]').forEach((list) => { list.hidden = list.dataset.matchList !== tab; });
+      const connected = document.querySelector('[data-match-list="connected"]');
+      const passed = document.querySelector('[data-match-list="passed"]');
+      if (prototypeState.match === 'connected') connected.innerHTML = '<button class="list-row match-card" data-next="chat"><strong>Maya Chen · Engineer</strong><p>Both connected · Human chat open</p><span class="status-pill">Connected</span></button>';
+      if (prototypeState.match === 'passed') passed.innerHTML = '<button class="list-row match-card" data-restore-match><strong>Maya Chen · Engineer</strong><p>Passed just now</p><span class="status-pill">Restore match</span></button>';
+      connected.querySelectorAll('[data-next]').forEach((button) => button.addEventListener('click', () => show(button.dataset.next)));
+      passed.querySelectorAll('[data-restore-match]').forEach((button) => button.addEventListener('click', () => { prototypeState.match='new'; prototypeState.selectedMatchTab='new'; saveState(); renderMatches(); }));
+    };
+    document.querySelectorAll('[data-match-tab]').forEach((tab) => tab.addEventListener('click', () => { prototypeState.selectedMatchTab=tab.dataset.matchTab; saveState(); renderMatches(); }));
+    document.querySelectorAll('[data-person]').forEach((card) => card.addEventListener('click', () => show('match')));
+
+    const renderMatch = () => {
+      const copy = document.querySelector('[data-match-state-copy]');
+      const connect = document.querySelector('[data-connect-match]');
+      const pass = document.querySelector('[data-pass-match]');
+      pass.hidden = prototypeState.match === 'connected';
+      if (prototypeState.match === 'new') { copy.textContent='Neither side has connected yet. Contact details stay private.'; connect.textContent='Connect'; connect.disabled=false; }
+      if (prototypeState.match === 'waiting') { copy.textContent='You connected. Waiting for Maya — nothing private is released yet.'; connect.textContent='Demo: Maya connects'; connect.disabled=false; }
+      if (prototypeState.match === 'connected') { copy.textContent='You both connected. Human chat is now open.'; connect.textContent='Open human chat'; connect.disabled=false; }
+      if (prototypeState.match === 'passed') { copy.textContent='Match passed. You can restore it from the Passed tab.'; connect.textContent='Back to matches'; connect.disabled=false; }
+    };
+    const renderChats = () => {
+      const list=document.querySelector('[data-chats-list]');
+      const count=document.querySelector('[data-chat-count]');
+      if (prototypeState.match === 'connected') {
+        count.textContent='1';
+        list.innerHTML='<button class="list-row match-card" data-open-human-chat><strong>Maya Chen</strong><p>Both connected · Start with your suggested opener</p><span class="status-pill">Human chat open</span></button>';
+        list.querySelector('[data-open-human-chat]').addEventListener('click', () => show('chat'));
+      } else {
+        count.textContent='0';
+        list.innerHTML='<div class="list-row"><strong>No human chats yet</strong><p>A private chat opens only after both people choose Connect.</p></div>';
+      }
+    };
+    document.querySelector('[data-connect-match]').addEventListener('click', () => {
+      if (prototypeState.match === 'new') prototypeState.match='waiting';
+      else if (prototypeState.match === 'waiting') prototypeState.match='connected';
+      else if (prototypeState.match === 'connected') return show('chat');
+      else return show('matches');
+      saveState(); renderMatch();
+    });
+    document.querySelector('[data-pass-match]').addEventListener('click', () => {
+      prototypeState.match='passed'; prototypeState.selectedMatchTab='passed'; saveState(); renderMatch();
+      const copy=document.querySelector('[data-match-state-copy]'); copy.innerHTML='Passed. <button class="text-button" data-undo-pass>Undo</button>';
+      copy.querySelector('[data-undo-pass]').addEventListener('click', () => { prototypeState.match='new'; prototypeState.selectedMatchTab='new'; saveState(); renderMatch(); });
+    });
+    document.querySelector('[data-evidence-toggle]').addEventListener('click', (event) => { const evidence=document.querySelector('[data-evidence]'); evidence.hidden=!evidence.hidden; event.currentTarget.textContent=evidence.hidden?'View conversation evidence':'Hide evidence'; });
+
+    const chatInput = document.querySelector('[data-chat-input]');
+    document.querySelector('[data-use-opener]').addEventListener('click', () => { chatInput.value='If agents could attend one kind of event for us, which would be most valuable?'; chatInput.focus(); });
+    const sendMessage = () => {
+      const value=chatInput.value.trim(); if (!value) return;
+      const host=document.querySelector('[data-human-messages]');
+      host.insertAdjacentHTML('beforeend', `<div class="message self"><div class="avatar">J</div><div><span class="speaker">You</span><p>${value.replace(/[<>]/g,'')}</p></div></div>`);
+      chatInput.value=''; document.querySelector('[data-composer-status]').textContent='Sending…';
+      setTimeout(() => { document.querySelector('[data-composer-status]').textContent='Delivered'; host.scrollIntoView({block:'end'}); }, 450);
+    };
+    document.querySelector('[data-send-message]').addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (event) => { if (event.key==='Enter') { event.preventDefault(); sendMessage(); } });
+    document.querySelector('[data-safety-toggle]').addEventListener('click', () => document.querySelector('[data-safety-menu]').classList.toggle('open'));
+    document.querySelector('[data-arrange-action]').addEventListener('click', () => show(prototypeState.presence==='remote'?'calendar':'meet-choice'));
+
+    const renderMeeting = () => {
+      applyPresence(prototypeState.presence);
+      const meetState=document.querySelector('[data-meet-state]');
+      const meetButton=document.querySelector('[data-meet-primary]');
+      const card=document.querySelector('[data-meeting-card]');
+      card.hidden=prototypeState.meeting==='ready' || prototypeState.meeting==='requested';
+      if (prototypeState.meeting==='ready') { meetState.textContent='Ready to request'; meetButton.textContent='Send Meet now request'; }
+      if (prototypeState.meeting==='requested') { meetState.textContent='Request sent · Waiting for Maya'; meetButton.textContent='Demo: Maya accepts'; }
+      if (prototypeState.meeting==='accepted') { meetState.textContent='Accepted · Meeting point revealed'; meetButton.textContent='I’m on my way'; }
+      if (prototypeState.meeting==='moving') { meetState.textContent='Maya notified · You’re on your way'; meetButton.textContent='I arrived'; }
+      if (prototypeState.meeting==='arrived') { meetState.textContent='You met · Mission complete'; meetButton.textContent='View event recap'; }
+      const calendarState=document.querySelector('[data-calendar-state]');
+      const calendarButton=document.querySelector('[data-calendar-primary]');
+      if (prototypeState.calendar==='draft') { calendarState.textContent='Not sent'; calendarButton.textContent='Review invitation'; }
+      if (prototypeState.calendar==='review') { calendarState.textContent='Ready to send · Tue 3:00 PM · 30 min'; calendarButton.textContent='Send Google Calendar invitation'; }
+      if (prototypeState.calendar==='sent') { calendarState.textContent='Invitation sent · Waiting for Maya'; calendarButton.textContent='Back to chat'; }
+    };
+    document.querySelector('[data-meet-primary]').addEventListener('click', () => {
+      const next={ready:'requested',requested:'accepted',accepted:'moving',moving:'arrived'};
+      if (prototypeState.meeting==='arrived') return show('recap');
+      prototypeState.meeting=next[prototypeState.meeting]; saveState(); renderMeeting();
+    });
+    document.querySelectorAll('.slot').forEach((slot) => slot.addEventListener('click', () => { document.querySelectorAll('.slot').forEach((item)=>item.classList.remove('active')); slot.classList.add('active'); }));
+    document.querySelector('[data-calendar-primary]').addEventListener('click', () => { if (prototypeState.calendar==='sent') return show('chat'); prototypeState.calendar=prototypeState.calendar==='draft'?'review':'sent'; saveState(); renderMeeting(); });
+    document.querySelectorAll('[data-memory-choice]').forEach((button) => button.addEventListener('click', () => { button.parentElement.querySelectorAll('button').forEach((item)=>item.classList.remove('chosen')); button.classList.add('chosen'); }));
+    document.querySelector('[data-share-recap]').addEventListener('click', () => { document.querySelector('[data-share-recap]').textContent='✓'; document.querySelector('[data-share-recap]').setAttribute('aria-label','Share preview excludes private knowledge'); });
+    document.querySelector('[data-recap-see-all]').addEventListener('click', () => { document.querySelector('[data-recap-see-all]').textContent='All 3 shown'; });
+    applyPresence(prototypeState.presence);
+    document.querySelector('[data-selected-agent-copy]').textContent=`${prototypeState.selectedAgent} · one agent for this event`;
+    document.querySelector('[data-continue-agent]').textContent=prototypeState.selectedAgent;
+    document.querySelectorAll('[data-select-agent]').forEach((item) => item.classList.toggle('active', item.dataset.selectAgent===prototypeState.selectedAgent));
+    renderMatches(); renderMatch(); renderChats(); renderMeeting();
+  </script>
+</body>
+</html>
