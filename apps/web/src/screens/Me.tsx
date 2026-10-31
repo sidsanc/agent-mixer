@@ -6,7 +6,7 @@ import { useMixer } from "../useMixer"
 import { Avatar } from "../components/Avatar"
 import { Confetti } from "../components/Confetti"
 import { AgentTab } from "./AgentTab"
-import { MatchesTab, effective } from "./MatchesTab"
+import { MatchesTab, bothOnsite, effective } from "./MatchesTab"
 import { ChatsTab } from "./ChatsTab"
 import { EventsTab } from "./EventsTab"
 
@@ -55,7 +55,7 @@ export function Me() {
         }
       }
       const mn = mx.intros[m.introId]?.meetNow
-      if (mn && !mn.accepted && mn.requestedBy !== me && !seenMeet.current.has(`${m.introId}:${mn.at}`)) {
+      if (mn && (mn.status ?? (mn.accepted ? "accepted" : "requested")) === "requested" && mn.requestedBy !== me && !seenMeet.current.has(`${m.introId}:${mn.at}`)) {
         seenMeet.current.add(`${m.introId}:${mn.at}`)
         setMeetPing(m.introId)
       }
@@ -76,7 +76,8 @@ export function Me() {
     return e.status === "pending" && !e.myChoice
   }).length
   const chatCount = matches.filter((m) => effective(m, mx.intros[m.introId], me).status === "connected").length
-  const pingMatch = meetPing ? matches.find((m) => m.introId === meetPing) : null
+  const pingMatch = meetPing ? matches.find((m) => m.introId === meetPing && mx.intros[m.introId]?.meetNow?.status === "requested") : null
+  const celebrateCanMeet = celebrate ? bothOnsite(celebrate, mx.intros[celebrate.introId], me, mx) : false
 
   const go = (t: Tab) => {
     setTab(t)
@@ -132,17 +133,16 @@ export function Me() {
           <Avatar id={pingMatch.other.id} role={pingMatch.other.role} size={38} />
           <span>
             <strong>{first(pingMatch.other.name)} wants to meet now</strong>
-            <small>Accept to reveal the meeting point.</small>
+            <small>Accept or decline in your chat.</small>
           </span>
           <button
             className="pill-btn cyan"
-            onClick={async () => {
+            onClick={() => {
               setMeetPing(null)
               openChat(pingMatch.introId)
-              if (mx.backend) mx.setIntro(await mx.backend.meet(pingMatch.introId, me, "accept"))
             }}
           >
-            Accept
+            Review
           </button>
         </div>
       )}
@@ -164,17 +164,19 @@ export function Me() {
               <h4>Start with this</h4>
               <p>“{(mx.intros[celebrate.introId]?.opener ?? celebrate.opener).replace(/^“|”$/g, "")}”</p>
             </div>
-            <button
-              className="cta pink"
-              onClick={async () => {
-                const id = celebrate.introId
-                setCelebrate(null)
-                openChat(id)
-                if (mx.backend) mx.setIntro(await mx.backend.meet(id, me, "request"))
-              }}
-            >
-              Meet now
-            </button>
+            {celebrateCanMeet && (
+              <button
+                className="cta pink"
+                onClick={async () => {
+                  const id = celebrate.introId
+                  setCelebrate(null)
+                  openChat(id)
+                  if (mx.backend) mx.backend.meet(id, me, "request").then(mx.setIntro, (e) => console.error(e))
+                }}
+              >
+                Meet now
+              </button>
+            )}
             <button
               className="cta ghost"
               onClick={() => {

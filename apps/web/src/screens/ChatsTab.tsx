@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Avatar, ROLE_LABEL } from "../components/Avatar"
 import type { MixerState } from "../useMixer"
-import { MeetPanel, effective } from "./MatchesTab"
+import { MeetPanel, attendanceOf, bothOnsite, effective } from "./MatchesTab"
 
 const first = (n: string) => n.split(" ")[0]
 
@@ -35,7 +35,7 @@ export function ChatsTab({
           {connected.map((m) => {
             const it = mx.intros[m.introId]
             const last = it?.chat[it.chat.length - 1]
-            const ask = it?.meetNow && !it.meetNow.accepted && it.meetNow.requestedBy !== me
+            const ask = it?.meetNow?.status === "requested" && it.meetNow.requestedBy !== me
             return (
               <button key={m.introId} className="row-card" onClick={() => setOpen(m.introId)}>
                 <Avatar id={m.other.id} role={m.other.role} size={48} />
@@ -68,10 +68,14 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [lines.length, showMeet])
 
-  // A meet-now request from them opens the panel.
+  // Requested/accepted opens the panel; declined/expired returns to chat with a short notice.
+  const mnStatus = it?.meetNow?.status
+  const mnKey = it?.meetNow ? `${it.meetNow.at}:${mnStatus}` : ""
+  const [dismissed, setDismissed] = useState<string | null>(null)
   useEffect(() => {
-    if (it?.meetNow) setShowMeet(true)
-  }, [it?.meetNow])
+    if (mnStatus === "requested" || mnStatus === "accepted") setShowMeet(true)
+    else if (mnStatus === "declined" || mnStatus === "expired") setShowMeet(false)
+  }, [mnKey, mnStatus])
 
   async function send(t: string) {
     t = t.trim()
@@ -89,6 +93,18 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
   }
 
   if (!m) return null
+  const canMeet = bothOnsite(m, it, me, mx)
+  const theirAttendance = attendanceOf(m.other.id, it, mx)
+  const mn = it?.meetNow
+  const declinedByMe = mn?.status === "declined" && mn.respondedBy === me
+  const notice =
+    mn && (mn.status === "declined" || mn.status === "expired") && dismissed !== mnKey
+      ? mn.status === "expired"
+        ? "Meet now request expired. Keep chatting, or send a new one."
+        : declinedByMe
+          ? "You declined Meet now. Keep chatting here."
+          : `${first(m.other.name)} can't meet right now. Keep chatting, or try again later.`
+      : null
   return (
     <div className="page thread">
       <div className="topline">
@@ -98,13 +114,26 @@ function Thread({ mx, me, introId, onBack }: { mx: MixerState; me: string; intro
         <Avatar id={m.other.id} role={m.other.role} size={34} />
         <span className="topline-who">
           <strong>{m.other.name}</strong>
-          <small>Here now · {ROLE_LABEL[m.other.role]}</small>
+          <small>
+            {theirAttendance === "onsite" ? "Here now" : "Agent only"} · {ROLE_LABEL[m.other.role]}
+          </small>
         </span>
-        <button className={`pill-btn ${it?.meetNow?.accepted ? "cyan" : "pink"}`} onClick={() => setShowMeet((x) => !x)}>
-          Meet now
+        <button className={`pill-btn ${mn?.status === "accepted" ? "cyan" : canMeet ? "pink" : "yellow"}`} onClick={() => setShowMeet((x) => !x)}>
+          {canMeet ? "Meet now" : "Meet"}
         </button>
       </div>
-      <div className="presence-line">You both chose Connect. Your human chat is now private.</div>
+      <div className="presence-line">
+        {canMeet ? "You're both at Haunted Hacks · Meet now is available" : "One of you joined agent-only · chat stays open"}
+      </div>
+
+      {notice && (
+        <div className="banner info meet-notice" role="status">
+          <span>{notice}</span>
+          <button onClick={() => setDismissed(mnKey)} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       {showMeet && <MeetPanel m={m} it={it} me={me} mx={mx} />}
 

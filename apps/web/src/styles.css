@@ -1945,3 +1945,63 @@ textarea:focus-visible {
   flex: none;
   padding: 8px 4px;
 }
+
+/* ---------- Meet now lifecycle ---------- */
+.meet-start.off {
+  background: rgba(255, 245, 217, 0.85);
+}
+.meet-start .coming-next {
+  margin-top: 0;
+  align-self: flex-start;
+  color: var(--cream-ink);
+  border-color: rgba(115, 95, 117, 0.45);
+}
+.meet-ask {
+  flex-wrap: wrap;
+}
+.meet-ask-actions {
+  display: flex;
+  gap: 8px;
+  flex: none !important;
+  flex-direction: row !important;
+}
+.cta.ghost.dark {
+  color: var(--dark);
+  background: transparent;
+  border-color: rgba(40, 18, 46, 0.3);
+}
+.meet-ask .err,
+.meeting-card .err {
+  flex-basis: 100%;
+  color: #b0204f;
+}
+.arrivals {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.arrivals span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cream-ink);
+  background: #eee3d1;
+}
+.arrivals span.on {
+  color: var(--deep);
+  background: var(--cyan);
+}
+.meet-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.meet-notice button {
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 900;
+  font-size: 16px;
+}
