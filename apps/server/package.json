@@ -1,0 +1,19 @@
+{
+  "name": "@agent-mixer/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@agent-mixer/shared": "workspace:*",
+    "@agent-relay/sdk": "14.0.0",
+    "@anthropic-ai/sdk": "latest",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}
