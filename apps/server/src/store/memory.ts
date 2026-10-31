@@ -1,11 +1,11 @@
 // In-process store: dev default and demo fallback if Terse fails.
 // Mirrors the Event / Attendee / Intro actors, including the Event pairing alarm.
 import {
-  LEASE_MS, MAX_SLOTS, mutualScore, type AttendeeView, type Choice, type Conversation, type ConversationStatus,
+  EVENT_NAME, LEASE_MS, MAX_SLOTS, type MeetAction, type MeetNow, mutualScore, type AttendeeView, type Choice, type Conversation, type ConversationStatus,
   type EventView, type FeedItem, type IntroState, type Line, type MatchSummary, type Profile,
   type PublicProfile, type ServerPush,
 } from "@agent-mixer/shared"
-import { MEETING_POINTS, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, toPublic, type Store } from "./types"
 
 const CONV_CAP = 12
 const FEED_CAP = 40
@@ -82,7 +82,7 @@ export class MemoryStore implements Store {
       .map((c) => ({ id: c.id, a: c.a, b: c.b, startedAt: c.startedAt }))
     const introsAll = [...this.intros.values()]
     return {
-      name: "Haunted Hacks",
+      name: EVENT_NAME,
       roster: structuredClone(this.roster),
       active,
       feed: structuredClone(this.feed),
@@ -212,6 +212,7 @@ export class MemoryStore implements Store {
 
   async intro(id: string) {
     const s = this.intros.get(id)
+    if (s) this.expireMeetNow(s)
     return s ? structuredClone(s) : null
   }
 
@@ -231,9 +232,11 @@ export class MemoryStore implements Store {
 
   async decide(id: string, attendeeId: string, c: Choice) {
     const s = this.mustIntro(id, attendeeId)
-    if (s.choices[attendeeId] || s.status !== "pending") return structuredClone(s) // double tap: no-op
+    // Reversible until both Connect; then locked. Same choice twice: no-op.
+    if (s.status === "connected" || s.choices[attendeeId] === c) return structuredClone(s)
     s.choices = { ...s.choices, [attendeeId]: c }
     const ca = s.choices[s.a], cb = s.choices[s.b]
+    s.status = "pending"
     if (ca === "pass" || cb === "pass") s.status = "passed"
     else if (ca === "connect" && cb === "connect") {
       s.status = "connected"
@@ -262,17 +265,48 @@ export class MemoryStore implements Store {
     return structuredClone(s)
   }
 
-  async meet(id: string, attendeeId: string, action: "request" | "accept") {
+  private expireMeetNow(s: IntroState) {
+    const m = s.meetNow
+    if (!m || m.status !== "requested" || !m.expiresAt || Date.now() < m.expiresAt) return false
+    s.meetNow = { ...m, status: "expired", accepted: false }
+    return true
+  }
+
+  /** Mirrors Intro.meet in apps/actors: request -> accept | decline | expire, then arrive. Onsite only. */
+  async meet(id: string, attendeeId: string, action: MeetAction) {
     const s = this.mustIntro(id, attendeeId)
+    this.expireMeetNow(s)
     if (s.status !== "connected") throw new HttpError(409, "meet opens after both connect")
+    const now = Date.now()
+    const m = s.meetNow
+    const live = m && (m.status === "requested" || m.status === "accepted") ? m : null
+    let next: MeetNow | null = m
     if (action === "request") {
-      if (!s.meetNow || s.meetNow.accepted === false && s.meetNow.requestedBy !== attendeeId) {
-        if (!s.meetNow) s.meetNow = { requestedBy: attendeeId, at: Date.now(), accepted: false }
-        else s.meetNow = { ...s.meetNow, accepted: true } // other side requested too: that's a yes
+      for (const pid of [s.a, s.b]) {
+        if (s.profiles[pid]?.attendance === "agent-only") throw new HttpError(409, "meet now needs both people onsite")
       }
-    } else if (s.meetNow && s.meetNow.requestedBy !== attendeeId) {
-      s.meetNow = { ...s.meetNow, accepted: true }
-    }
+      if (live?.status === "accepted" || (live && live.requestedBy === attendeeId)) return structuredClone(s)
+      if (live) next = { ...live, status: "accepted", accepted: true, respondedBy: attendeeId }
+      else {
+        const ttl = meetNowTtl()
+        next = { requestedBy: attendeeId, at: now, accepted: false, status: "requested", expiresAt: now + ttl, arrivedBy: [] }
+        setTimeout(() => { if (this.expireMeetNow(s)) this.emitIntro(s) }, ttl + 50)
+      }
+    } else if (action === "accept") {
+      if (!live) throw new HttpError(409, "no meet now request to answer")
+      if (live.status === "accepted" || live.requestedBy === attendeeId) return structuredClone(s)
+      next = { ...live, status: "accepted", accepted: true, respondedBy: attendeeId }
+    } else if (action === "decline") {
+      if (!live) throw new HttpError(409, "no meet now request to answer")
+      if (live.status === "accepted") throw new HttpError(409, "meet now was already accepted")
+      next = { ...live, status: "declined", accepted: false, respondedBy: attendeeId }
+    } else if (action === "arrive") {
+      if (live?.status !== "accepted") throw new HttpError(409, "arrive needs an accepted meet now")
+      const arrived = live.arrivedBy ?? []
+      if (arrived.includes(attendeeId)) return structuredClone(s)
+      next = { ...live, arrivedBy: [...arrived, attendeeId] }
+    } else throw new HttpError(400, "unknown meet action")
+    s.meetNow = next
     this.emitIntro(s)
     return structuredClone(s)
   }

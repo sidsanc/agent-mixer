@@ -1,7 +1,8 @@
 import type {
-  AttendeeView, Choice, Conversation, ConversationStatus, EventView, IntroState, Line,
+  AttendeeView, Choice, MeetAction, Conversation, ConversationStatus, EventView, IntroState, Line,
   MatchSummary, Profile, PublicProfile, ServerPush,
 } from "@agent-mixer/shared"
+import { MEET_NOW_TTL_MS } from "@agent-mixer/shared"
 
 export interface Store {
   createAttendee(p: Profile): Promise<void>
@@ -18,13 +19,20 @@ export interface Store {
   intro(id: string): Promise<IntroState | null>
   decide(id: string, attendeeId: string, c: Choice): Promise<IntroState>
   chat(id: string, attendeeId: string, text: string): Promise<IntroState>
-  meet(id: string, attendeeId: string, action: "request" | "accept"): Promise<IntroState>
+  meet(id: string, attendeeId: string, action: MeetAction): Promise<IntroState>
   onChange(fn: (push: ServerPush) => void): void
 }
 
 export function toPublic(p: Profile | PublicProfile): PublicProfile {
   const { id, name, agentName, role, bio, shareableGoal, seeded, plantedFor } = p
-  return { id, name, agentName, role, bio, shareableGoal, ...(seeded ? { seeded } : {}), ...(plantedFor?.length ? { plantedFor } : {}) }
+  const attendance = p.attendance === "agent-only" ? "agent-only" : "onsite"
+  return { id, name, agentName, role, bio, shareableGoal, attendance, ...(seeded ? { seeded } : {}), ...(plantedFor?.length ? { plantedFor } : {}) }
+}
+
+/** Meet now request lifetime; MEET_NOW_TTL_MS env overrides (short values are handy for tests). */
+export function meetNowTtl(): number {
+  const v = Number(process.env.MEET_NOW_TTL_MS)
+  return v >= 1000 ? v : MEET_NOW_TTL_MS
 }
 
 export const MEETING_POINTS = [

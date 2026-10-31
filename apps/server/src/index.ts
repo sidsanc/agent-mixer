@@ -1,12 +1,13 @@
 // Agent Mixer server: REST API + SSE on :3001, agent conversation loop, Relay bridge, seed loader.
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import type { Choice, Profile, Role, ServerPush } from "@agent-mixer/shared"
-import { ROLES } from "@agent-mixer/shared"
+import type { Attendance, Choice, MeetAction, Profile, Role, ServerPush } from "@agent-mixer/shared"
+import { EVENT_NAME, ROLES } from "@agent-mixer/shared"
 import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
 import { llmProvider, llmStats } from "./agents/llm"
+import { meetNowTtl } from "./store/types"
 import { speed } from "./agents/engine"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
@@ -177,13 +178,16 @@ async function signup(req: Request) {
   const role = String(b.role ?? "other") as Role
   if (!name || !goal) throw new HttpError(400, "name and goal are required")
   if (!roleIds.has(role)) throw new HttpError(400, `role must be one of ${[...roleIds].join(", ")}`)
+  const attendance = String(b.attendance ?? "onsite") as Attendance
+  if (attendance !== "onsite" && attendance !== "agent-only") throw new HttpError(400, "attendance must be onsite or agent-only")
   const id = `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`
   const p: Profile = {
     id, name, agentName: `${name.split(" ")[0]}'s agent`, role,
     bio: String(b.bio ?? "").trim().slice(0, 200),
     shareableGoal: goal,
+    attendance,
     privateIntent: String(b.privateIntent ?? "").trim().slice(0, 500),
-    contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at Haunted Hacks`,
+    contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at ${EVENT_NAME}`,
   }
   await store.createAttendee(p)
   if ("ensureAgent" in engine.transport && engine.transport.ensureAgent) {
@@ -215,7 +219,7 @@ Bun.serve({
     try {
       let r: RegExpMatchArray | null
       if (req.method === "GET" && path === "/api/health") {
-        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), llmStats, speed: speed() })
+        return json({ ok: true, store: storeKind, transport: engine.transport.name, transportStatus, relay: relayStatsRef, llm: llmProvider(), llmStats, speed: speed(), meetNowTtlMs: meetNowTtl() })
       }
       if (req.method === "GET" && path === "/api/observer") return json({ url: relayRef?.observerUrl ?? null })
       if (req.method === "POST" && path === "/api/signup") return await signup(req)
@@ -241,7 +245,8 @@ Bun.serve({
       }
       if (req.method === "POST" && (r = m(/^\/api\/intro\/([^/]+)\/meet$/))) {
         const b = await body(req)
-        const action = b.action === "accept" ? "accept" : "request"
+        const action = String(b.action ?? "request") as MeetAction
+        if (!["request", "accept", "decline", "arrive"].includes(action)) throw new HttpError(400, "action must be request, accept, decline or arrive")
         return json(redactIntro(await store.meet(r[1], String(b.attendeeId), action), String(b.attendeeId)))
       }
       if (req.method === "POST" && (r = m(/^\/api\/conversation\/([^/]+)\/end$/))) {
