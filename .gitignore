@@ -10,3 +10,6 @@ dist/
 .claude/settings/
 .claude/system-prompts/
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify

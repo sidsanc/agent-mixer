@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Mixer — One-page introduction</title>
+<style>
+*{box-sizing:border-box}:root{--ink:#111217;--blue:#3157ff;--ice:#eef2ff;--coral:#ff6d5f;--muted:#686b76;--line:#dfe1e8}html,body{margin:0;background:#ececf0;color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}.page{width:min(1120px,100%);min-height:1584px;margin:32px auto;padding:54px 60px 44px;background:#fff;box-shadow:0 24px 70px #1e203018}.topbar{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:2px solid var(--ink)}.brand{display:flex;align-items:center;gap:11px;font-size:17px;font-weight:800;letter-spacing:-.03em}.mark{position:relative;width:27px;height:27px;border:6px solid var(--blue);border-radius:50%}.mark:after{content:"";position:absolute;right:-9px;bottom:-5px;width:9px;height:9px;border:3px solid #fff;border-radius:50%;background:var(--coral)}.meta{color:var(--muted);font-size:11px;font-weight:650}.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center;padding:54px 0 52px;border-bottom:1px solid var(--line)}h1{max-width:570px;margin:0;font-size:72px;line-height:.96;letter-spacing:-.065em}.dek{max-width:560px;margin:25px 0 0;color:#42444d;font-size:19px;line-height:1.45;letter-spacing:-.018em}.dek strong{color:var(--blue)}.network{position:relative;min-height:315px;overflow:hidden;background:var(--ice)}.field{position:absolute;inset:0;background-image:radial-gradient(circle,#9ba6d8 1.5px,transparent 1.8px);background-size:20px 20px;opacity:.52}.network:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 4%,rgba(238,242,255,.2) 42%,var(--ice) 76%)}.route{position:absolute;z-index:2;height:2px;background:var(--blue);transform-origin:right}.r1{right:74px;top:112px;width:260px;transform:rotate(8deg)}.r2{right:74px;top:158px;width:305px;transform:rotate(-2deg)}.r3{right:74px;top:205px;width:242px;transform:rotate(-10deg)}.person{position:absolute;right:43px;z-index:3;display:grid;place-items:center;width:56px;height:56px;border:2px solid var(--ink);border-radius:50%;background:#fff;font-size:12px;font-weight:800}.p1{top:83px}.p2{top:131px;right:16px;color:#fff;background:var(--blue);border-color:var(--blue)}.p3{top:181px}.count,.three{position:absolute;bottom:20px;z-index:4;font-size:60px;font-weight:850;line-height:.9;letter-spacing:-.06em}.count{left:24px;color:var(--blue)}.three{right:21px;color:var(--coral);text-align:right}.count span,.three span{display:block;margin-top:7px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:0}.insight{display:grid;grid-template-columns:160px 1fr;gap:34px;padding:34px 0;border-bottom:1px solid var(--line)}.label{margin:4px 0 0;color:var(--blue);font-size:11px;font-weight:800}.insight p{max-width:780px;margin:0;font-size:24px;font-weight:560;line-height:1.32;letter-spacing:-.035em}.columns{display:grid;grid-template-columns:1fr 1fr;gap:64px;padding:40px 0 36px}h2{margin:0 0 23px;font-size:27px;letter-spacing:-.045em}.list{margin:0;padding:0;list-style:none}.list li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:14px 0;border-top:1px solid var(--line)}.list li:first-child{border-top:2px solid var(--ink)}.num{color:var(--blue);font-size:11px;font-weight:800;padding-top:2px}.tech .num{color:var(--coral)}.list h3{margin:0 0 4px;font-size:14px;line-height:1.25;letter-spacing:-.018em}.list p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.45}code{padding:1px 4px;border-radius:3px;color:#1d3ed1;background:var(--ice);font:10px "SFMono-Regular",Consolas,monospace}.pipeline{padding:24px 26px;background:var(--ink);color:#fff}.pipeline-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin-bottom:20px}.pipeline h2{margin:0;font-size:20px}.pipeline p{margin:0;color:#aeb0b8;font-size:10px}.steps{display:grid;grid-template-columns:repeat(7,1fr);margin:0;padding:0;list-style:none}.steps li{position:relative;padding-right:18px;color:#aeb0b8;font-size:9.5px;line-height:1.35}.steps li:not(:last-child):after{content:"";position:absolute;right:7px;top:5px;width:5px;height:5px;border-top:1px solid #8b91a6;border-right:1px solid #8b91a6;transform:rotate(45deg)}.steps b{display:block;margin-bottom:3px;color:#fff;font-size:10.5px}.steps li:last-child b{color:#98fff0}footer{display:grid;grid-template-columns:1fr auto;gap:36px;align-items:end;padding-top:28px}blockquote{max-width:760px;margin:0;font-size:28px;font-weight:700;line-height:1.18;letter-spacing:-.045em}footer small{color:var(--muted);font-size:10px;font-weight:700;text-align:right}
+@media(max-width:760px){.page{min-height:0;margin:0;padding:28px 22px}.hero{grid-template-columns:1fr;gap:34px;padding:38px 0}h1{font-size:52px}.dek{font-size:17px}.network{min-height:270px}.insight{grid-template-columns:1fr;gap:9px}.insight p{font-size:21px}.columns{grid-template-columns:1fr;gap:38px}.steps{grid-template-columns:1fr;gap:12px}.steps li{padding:0 0 10px 18px;border-bottom:1px solid #333640}.steps li:not(:last-child):after{display:none}footer{grid-template-columns:1fr}footer small{text-align:left}}
+@media print{@page{size:A4 portrait;margin:0}html,body{background:#fff}.page{width:210mm;min-height:297mm;margin:0;padding:10mm 12mm 9mm;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}.hero{gap:9mm;padding:9mm 0}.hero h1{font-size:38pt}.dek{margin-top:4mm;font-size:10.5pt}.network{min-height:55mm}.insight{grid-template-columns:27mm 1fr;gap:5mm;padding:6mm 0}.insight p{font-size:13pt}.columns{gap:9mm;padding:7mm 0 6mm}h2{margin-bottom:4mm;font-size:15pt}.list li{grid-template-columns:4mm 1fr;gap:2mm;padding:2.3mm 0}.list h3{font-size:8pt}.list p{font-size:6.9pt;line-height:1.35}.pipeline{padding:4mm}.pipeline-head{margin-bottom:3mm}.pipeline h2{font-size:11pt}.steps li,.steps b{font-size:5.8pt}footer{padding-top:5mm}blockquote{font-size:15pt}}
+.page{width:min(1380px,100%);min-height:970px;padding:38px 54px 34px}.topbar{padding-bottom:14px}.hero{grid-template-columns:1.06fr .94fr;gap:62px;padding:34px 0 32px}h1{max-width:650px;font-size:64px}.dek{max-width:650px;margin-top:19px;font-size:17px}.network{min-height:252px}.r1{top:72px;width:320px}.r2{top:120px;width:360px}.r3{top:168px;width:300px}.person{width:50px;height:50px}.p1{top:45px}.p2{top:94px}.p3{top:144px}.count,.three{bottom:16px;font-size:48px}.insight{padding:22px 0}.insight p{max-width:980px;font-size:21px}.columns{gap:34px;padding:26px 0 24px}.columns>section{padding:24px 26px 18px;border-top:4px solid var(--blue);background:#f7f8ff}.columns>section.tech{border-top-color:var(--coral);background:#fff8f6}h2{margin-bottom:16px;font-size:24px}.list li{padding:9px 0}.pipeline{padding:17px 22px}.pipeline-head{margin-bottom:13px}.steps{grid-template-columns:repeat(7,1fr)}footer{padding-top:18px}blockquote{max-width:880px;font-size:24px}
+@media print{@page{size:A4 landscape}.page{width:297mm;min-height:210mm;padding:8mm 11mm 7mm}.hero{padding:7mm 0}.network{min-height:47mm}.insight{padding:4mm 0}.columns{padding:5mm 0 4mm}.columns>section{padding:4mm}.list li{padding:1.6mm 0}.pipeline{padding:3mm}footer{padding-top:3mm}}
+
+/* Mission-dossier direction: GTA-inspired without copying protected game assets. */
+:root{--ink:#191713;--blue:#245c45;--ice:#e8dfbf;--coral:#d94a2c;--muted:#655e4f;--line:#cabe99}
+html,body{background:#b8ae91}
+body{background-image:linear-gradient(135deg,#b8ae91 25%,#c6bda2 25%,#c6bda2 50%,#b8ae91 50%,#b8ae91 75%,#c6bda2 75%);background-size:36px 36px}
+.page{position:relative;background:#f5edcf;box-shadow:12px 14px 0 #171612,0 30px 80px #18140d42}
+.page:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E")}
+.topbar{position:relative;border-bottom:4px solid var(--ink)}
+.brand{font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:21px;font-style:italic;text-transform:uppercase}
+.mark{border-color:var(--coral);border-radius:2px;transform:rotate(-6deg)}
+.mark:after{border-radius:0;background:#f0c951}
+.meta{padding:7px 11px;border:2px solid var(--ink);color:#fff;background:var(--blue);font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:11px;font-weight:900;font-style:italic;text-transform:uppercase;transform:rotate(1deg);box-shadow:4px 4px 0 var(--ink)}
+h1,h2,.list h3,.pipeline h2,blockquote{font-family:"Avenir Next Condensed","Arial Narrow",sans-serif}
+h1{font-style:italic;text-transform:uppercase;text-shadow:3px 3px 0 #e0c65f}
+.dek strong{color:var(--coral)}
+.network{border:3px solid var(--ink);background:#dfd2a7;box-shadow:8px 8px 0 var(--ink);transform:rotate(.5deg)}
+.field{background-image:linear-gradient(28deg,transparent 47%,#6b775d55 48%,#6b775d55 50%,transparent 51%),linear-gradient(-32deg,transparent 47%,#6b775d44 48%,#6b775d44 50%,transparent 51%),radial-gradient(circle,#5f705f 1.5px,transparent 1.8px);background-size:95px 65px,120px 80px,22px 22px;opacity:.72}
+.network:after{background:linear-gradient(90deg,transparent 5%,rgba(223,210,167,.18) 40%,#dfd2a7 78%)}
+.route{height:3px;background:var(--coral);box-shadow:0 1px 0 #fff3}
+.person{border:3px solid var(--ink);border-radius:5px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-2deg)}
+.p2{background:var(--blue);border-color:var(--ink);transform:rotate(3deg)}
+.count{color:var(--blue);text-shadow:2px 2px 0 #f5edcf}.three{color:var(--coral);text-shadow:2px 2px 0 #f5edcf}
+.insight{border-bottom:3px solid var(--ink)}
+.label{display:inline-block;width:max-content;padding:6px 9px;color:#fff;background:var(--coral);font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:12px;font-style:italic;text-transform:uppercase;transform:rotate(-1deg)}
+.insight p{font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:25px;font-weight:800;text-transform:uppercase}
+.columns>section{border:3px solid var(--ink);border-top:9px solid var(--blue);background:#efe6c7;box-shadow:7px 7px 0 var(--ink)}
+.columns>section.tech{border-top-color:var(--coral);background:#ead8b6}
+.columns h2{font-size:28px;font-style:italic;text-transform:uppercase}
+.list li{border-color:#b9aa80}.list li:first-child{border-top:3px solid var(--ink)}
+.num{display:grid;place-items:center;width:21px;height:21px;color:#fff;background:var(--blue);font-size:10px;transform:rotate(-3deg)}
+.tech .num{color:#fff;background:var(--coral);transform:rotate(3deg)}
+.list h3{font-size:15px;text-transform:uppercase}
+code{border:1px solid #ad9f77;color:#fff;background:var(--blue)}
+.pipeline{border:3px solid var(--ink);background:var(--blue);box-shadow:7px 7px 0 var(--ink);transform:rotate(-.2deg)}
+.pipeline h2{color:#f4d05d;font-style:italic;text-transform:uppercase}
+.steps li,.pipeline p{color:#d9e2d7}.steps li:not(:last-child):after{border-color:#f4d05d}.steps li:last-child b{color:#f4d05d}
+blockquote{font-size:27px;font-style:italic;text-transform:uppercase}
+footer small{padding:6px 8px;border:2px solid var(--ink);color:#fff;background:var(--coral);font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-style:italic;text-transform:uppercase;transform:rotate(1deg)}
+@media(max-width:760px){.page{box-shadow:none}.network,.columns>section,.pipeline{box-shadow:4px 4px 0 var(--ink)}h1{font-size:48px}}
+@media print{html,body{background:#fff}.page{box-shadow:none}.network,.columns>section,.pipeline{box-shadow:3px 3px 0 var(--ink)}}
+
+/* Vice City social direction, matched to the approved Agent Mixer mobile visual. */
+:root{--ink:#fff7df;--blue:#f02bbd;--ice:#39154c;--coral:#ff5ca8;--muted:#dec9e5;--line:#ffffff35}
+html,body{background:#42204e;color:var(--ink)}
+body{background-image:radial-gradient(circle at 50% 0,#a44aa3 0,#5a2868 48%,#2b1037 100%)}
+.page{color:var(--ink);background:#4b2058;box-shadow:0 30px 90px #16051e99}
+.page:before{z-index:0;opacity:1;background:linear-gradient(180deg,rgba(41,8,61,.12) 0%,rgba(105,24,108,.22) 36%,rgba(52,12,62,.62) 76%,rgba(35,8,45,.78) 100%),url("../design/assets/agent-world-home-hero.png") center 18%/cover no-repeat}
+.page>*{position:relative;z-index:1}
+.topbar{border-bottom:2px solid #f02bbd88}
+.brand{color:#fff7df;text-shadow:0 0 18px #ff4dc877}
+.mark{border-color:#f02bbd;border-radius:50%;transform:none;box-shadow:0 0 16px #f02bbdaa}
+.mark:after{border-radius:50%;background:#79f0e8}
+.meta{border:1px solid #ff7bd8;color:#fff7df;background:#50175fb8;box-shadow:0 0 18px #ff2dbb55;backdrop-filter:blur(10px);transform:none}
+h1{color:#fff7df;text-shadow:3px 4px 0 #57146d,0 0 24px #ff4bbe55}
+.dek{color:#f7e8f5;text-shadow:0 2px 9px #190220}.dek strong{color:#ff3fc4}
+.network{border:1px solid #ff78d4;border-radius:20px;background:#3d1554a8;box-shadow:0 0 0 1px #ffffff24 inset,0 0 30px #ff31bd3d,0 18px 38px #13031f80;transform:none;backdrop-filter:blur(14px)}
+.field{background-image:radial-gradient(circle,#ff7cdb 1.5px,transparent 1.8px);background-size:22px 22px;opacity:.38}
+.network:after{background:linear-gradient(90deg,transparent,#4b165d22 45%,#3b134eaa 80%)}
+.route{background:#7af0ea;box-shadow:0 0 10px #7af0ea}
+.person{border:1px solid #ff8ddd;border-radius:14px;color:#fff7df;background:#2e0d3da8;box-shadow:0 0 18px #ff4ac966;transform:none;backdrop-filter:blur(8px)}
+.p2{color:#2b0b38;background:#7af0ea;border-color:#7af0ea;transform:none;box-shadow:0 0 18px #7af0eaaa}
+.count{color:#7af0ea;text-shadow:0 0 18px #7af0ea66}.three{color:#ff4fc6;text-shadow:0 0 18px #ff4fc688}.count span,.three span{color:#f0daee}
+.insight{border-bottom:1px solid #ffffff3b}
+.label{border:1px solid #ff7dd8;border-radius:999px;color:#fff7df;background:#4c155eb8;box-shadow:0 0 14px #ff39be44;transform:none;backdrop-filter:blur(10px)}
+.insight p{color:#fff7df;text-shadow:0 2px 12px #18021f}
+.columns>section{border:1px solid #ffffff55;border-top:2px solid #ff4dc8;border-radius:24px;background:linear-gradient(145deg,#5a1c69b8,#32103fb8);box-shadow:0 0 0 1px #ffffff12 inset,0 20px 42px #10021980;backdrop-filter:blur(18px)}
+.columns>section.tech{border-top-color:#7af0ea;background:linear-gradient(145deg,#42175ebd,#251139c7)}
+.columns h2{color:#fff7df;text-shadow:0 0 16px #ff41c755}
+.list li{border-color:#ffffff26}.list li:first-child{border-top:1px solid #ffffff62}
+.num{border-radius:6px;color:#2c0b39;background:#ff52c8;transform:none;box-shadow:0 0 12px #ff52c866}
+.tech .num{color:#24102f;background:#7af0ea;transform:none;box-shadow:0 0 12px #7af0ea66}
+.list h3{color:#fff7df}.list p{color:#dec9e5}
+code{border:1px solid #ff79d7;color:#fff7df;background:#7b1f7599}
+.pipeline{border:1px solid #ff72d1;border-radius:18px;background:#3b114cce;box-shadow:0 0 0 1px #ffffff14 inset,0 0 28px #ff38be35;transform:none;backdrop-filter:blur(16px)}
+.pipeline h2{color:#fff7df;text-shadow:0 0 14px #ff4fc666}.pipeline p,.steps li{color:#d9c4df}.steps li:not(:last-child):after{border-color:#ff5dcc}.steps li:last-child b{color:#7af0ea}
+blockquote{color:#fff7df;text-shadow:0 0 18px #ff47c45c}
+footer small{border:1px solid #ff77d3;border-radius:10px;color:#fff7df;background:#5c176dbd;box-shadow:0 0 18px #ff37bd44;transform:none}
+@media(max-width:760px){.page{box-shadow:none}.network,.columns>section,.pipeline{box-shadow:0 14px 32px #10021980}}
+@media print{html,body{background:#24102f}.page{background:#24102f}.network,.columns>section,.pipeline{box-shadow:none}}
+
+/* Lock the browser preview and print output to one full A4 landscape sheet. */
+.page{aspect-ratio:297/210;min-height:0;height:auto;overflow:hidden;padding:28px 44px 22px}
+.topbar{padding-bottom:10px}
+.brand{font-size:18px}.meta{padding:5px 9px;font-size:9px}
+.hero{gap:48px;padding:22px 0 20px}
+h1{max-width:610px;font-size:54px;line-height:.94}
+.dek{margin-top:14px;font-size:15px;line-height:1.38}
+.network{min-height:210px}
+.r1{top:58px}.r2{top:100px}.r3{top:142px}.person{width:44px;height:44px}.p1{top:36px}.p2{top:78px}.p3{top:122px}
+.count,.three{font-size:41px}
+.insight{padding:15px 0}
+.label{padding:5px 8px;font-size:10px}.insight p{font-size:20px;line-height:1.2}
+.columns{gap:28px;padding:18px 0 16px}
+.columns>section{padding:16px 20px 12px;border-radius:20px}
+.columns h2{margin-bottom:11px;font-size:23px}
+.list li{grid-template-columns:22px 1fr;gap:8px;padding:6px 0}
+.num{width:18px;height:18px;font-size:8px}
+.list h3{margin-bottom:2px;font-size:12px;line-height:1.16}
+.list p{font-size:10.5px;line-height:1.3}
+.pipeline{padding:12px 18px;border-radius:14px}
+.pipeline-head{margin-bottom:9px}.pipeline h2{font-size:17px}.pipeline p{font-size:8px}
+.steps li{font-size:8px}.steps b{font-size:9px}
+footer{padding-top:12px}blockquote{font-size:21px}footer small{padding:4px 7px;font-size:8px}
+@media print{@page{size:A4 landscape;margin:0}.page{width:297mm;height:210mm;min-height:210mm;aspect-ratio:auto;overflow:hidden;padding:6mm 9mm 5mm}.hero{padding:4mm 0}.network{min-height:39mm}.insight{padding:3mm 0}.columns{padding:3mm 0}.columns>section{padding:3mm 4mm 2mm}.list li{padding:1.1mm 0}.pipeline{padding:2.3mm 3.5mm}footer{padding-top:2mm}}
+
+/* Final one-sheet format: portrait A4, paced to use the full page. */
+html,body{min-height:0;background:#f4f1f5}
+.page{width:min(1120px,100%);aspect-ratio:210/297;min-height:0;height:auto;margin:24px auto;overflow:hidden;padding:46px 44px 38px}
+.topbar{padding-bottom:16px}
+.brand{font-size:20px}.meta{padding:6px 10px;font-size:10px}
+.hero{grid-template-columns:1.02fr .98fr;gap:42px;padding:46px 0 44px}
+h1{max-width:550px;font-size:68px;line-height:.94}
+.dek{max-width:550px;margin-top:20px;font-size:20px;line-height:1.4}
+.scope-note{display:inline-flex;margin-top:12px;padding:5px 9px;border:1px solid #ff72d1;border-radius:999px;color:#fff7df;background:#491257aa;font-size:10px;font-weight:700;letter-spacing:.01em}
+.network{display:grid;grid-template-columns:1fr 1.3fr 1fr;align-items:center;gap:12px;min-height:292px;padding:28px 24px}
+.network .field,.network:after,.network .route,.network .person,.network>.count,.network>.three{display:none}
+.network-stage{position:relative;z-index:3;text-align:center}
+.network-stage strong{display:block;color:#fff7df;font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:16px;font-style:italic;text-transform:uppercase}
+.network-stage small{display:block;margin-top:5px;color:#dec9e5;font-size:10px;line-height:1.25}
+.crowd-number{color:#7af0ea!important;font-size:58px!important;line-height:.85;text-shadow:0 0 18px #7af0ea66}
+.crowd-dots{display:grid;grid-template-columns:repeat(5,6px);justify-content:center;gap:8px;margin:17px auto 0}
+.crowd-dots i{width:6px;height:6px;border-radius:50%;background:#ff62cd;box-shadow:0 0 8px #ff4bc6}
+.router-core{padding:20px 10px;border:1px solid #7af0ea;border-radius:16px;background:#24102fbb;box-shadow:0 0 22px #7af0ea35}
+.router-core strong{color:#7af0ea;font-size:20px}
+.router-core:before,.router-core:after{content:"";position:absolute;top:50%;width:18px;border-top:2px solid #7af0ea;box-shadow:0 0 8px #7af0ea}
+.router-core:before{left:-15px}.router-core:after{right:-15px}
+.match-stack{display:grid;gap:8px}
+.match-chip{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #ff7bd8;border-radius:10px;background:#461451cc;text-align:left}
+.match-chip b{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:8px;color:#2b0b38;background:#7af0ea;font-size:12px}
+.match-chip span{color:#fff7df;font-size:11px;font-weight:800;line-height:1.1}
+.match-chip em{display:block;margin-top:3px;color:#dec9e5;font-size:8.5px;font-style:normal;font-weight:400;line-height:1.2}
+.insight{grid-template-columns:145px 1fr;gap:28px;padding:25px 0}
+.label{padding:8px 12px;font-size:13px}.insight p{font-size:28px;line-height:1.2}
+.columns{gap:24px;padding:32px 0 27px}
+.columns>section{padding:22px 20px 18px;border-radius:22px}
+.columns h2{margin-bottom:16px;font-size:34px}
+.list li{grid-template-columns:29px 1fr;gap:9px;padding:9px 0}
+.num{width:25px;height:25px;font-size:12px}
+.list h3{margin-bottom:4px;font-size:18px;line-height:1.16}
+.list p{font-size:16px;line-height:1.31}
+.pipeline{padding:20px 22px;border-radius:16px}
+.pipeline-head{margin-bottom:17px}.pipeline h2{font-size:27px}.pipeline p{font-size:13px}
+.steps li{font-size:14px}.steps b{font-size:15px}
+footer{padding-top:24px}blockquote{font-size:32px}footer small{padding:7px 9px;font-size:11px}
+@media print{@page{size:A4 portrait;margin:0}html,body{background:#fff}.page{width:210mm;height:297mm;min-height:297mm;aspect-ratio:auto;margin:0;padding:9mm 10mm 8mm}.hero{padding:9mm 0 8mm}.network{min-height:55mm}.insight{padding:6mm 0}.columns{padding:7mm 0 6mm}.columns>section{padding:5mm 4.5mm 4mm}.list li{padding:1.9mm 0}.pipeline{padding:4mm}footer{padding-top:5mm}}
+</style></head>
+<body><main class="page">
+<header class="topbar"><div class="brand"><span class="mark"></span>Agent Mixer</div><div class="meta">Active mission · relationship discovery</div></header>
+<section class="hero"><div><h1>Your agent works the room, even when you don’t.</h1><p class="dek"><strong>Set an objective. Send your agent in.</strong> It can begin before an event, compare who will be where, verify fit through real conversations, and tell you which rooms—and which people—are worth your time.</p><span class="scope-note">One event today · your entire week next</span></div><div class="network" aria-label="Five hundred people in the room are ranked and verified through conversation, producing three qualified introductions"><div class="network-stage"><strong class="crowd-number">500</strong><small>people<br>in the room</small><div class="crowd-dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="network-stage router-core"><strong>Router</strong><small>scores both sides<br>agents talk<br>fit is verified</small></div><div class="network-stage match-stack"><div class="match-chip"><b>M</b><span>Maya<em>meet at Founder Dinner</em></span></div><div class="match-chip"><b>A</b><span>Alex<em>meet at Demo Night</em></span></div><div class="match-chip"><b>R</b><span>Ryan<em>meet at AI Meetup</em></span></div></div></div></section>
+<section class="insight"><h2 class="label">The insight</h2><p>Profiles show identity. Conversation reveals whether needs, timing, and mutual value align <em>right now</em>.</p></section>
+<div class="columns">
+<section><h2>What it does</h2><ol class="list">
+<li><span class="num">01</span><div><h3>Starts with intent</h3><p>Define the person you need: a customer, investor, cofounder, hire, collaborator, or domain expert.</p></div></li>
+<li><span class="num">02</span><div><h3>Delegates the exploration</h3><p>Your agent asks follow-up questions that expose needs, constraints, timing, and opportunities missing from profiles.</p></div></li>
+<li><span class="num">03</span><div><h3>Plans your week</h3><p>Across upcoming events, your agent starts conversations early and shows where your highest-value meetings are likely to happen.</p></div></li>
+<li><span class="num">04</span><div><h3>Recommends mutual value</h3><p>Every introduction explains why it matters, what each person contributes, and why they should speak now.</p></div></li>
+<li><span class="num">05</span><div><h3>Leaves the decision to people</h3><p>A private human channel opens only after both users independently choose Connect.</p></div></li>
+</ol></section>
+<section class="tech"><h2>How it works</h2><ol class="list">
+<li><span class="num">01</span><div><h3>Progressive discovery</h3><p>The Event Router filters unavailable and exhausted candidates, then ranks the remainder by approved goals, needs, skills, and offers.</p></div></li>
+<li><span class="num">02</span><div><h3>Bilateral scoring</h3><p>Both agents score the relationship independently. A geometric mean penalizes one-sided interest and rewards reciprocal value.</p></div></li>
+<li><span class="num">03</span><div><h3>Conversation as verification</h3><p>Selected agents speak directly through Agent Relay. Ranking decides who talks first; conversation decides whether the match is real.</p></div></li>
+<li><span class="num">04</span><div><h3>Adaptive exploration</h3><p>Three conversations run by default, expanding to five when quality allows. Finished slots immediately refill with stronger candidates.</p></div></li>
+<li><span class="num">05</span><div><h3>Durable, consented handoff</h3><p>Terse preserves state across disconnects. A typed <code>propose_match</code> creates an Intro Actor that releases private details exactly once, only after both people connect.</p></div></li>
+</ol></section></div>
+<section class="pipeline"><div class="pipeline-head"><h2>From a crowded week to one relevant introduction</h2><p>The complete decision loop</p></div><ol class="steps"><li><b>Scan</b>upcoming events</li><li><b>Score</b>from both sides</li><li><b>Allocate</b>conversation capacity</li><li><b>Verify</b>through dialogue</li><li><b>Rank</b>people and rooms</li><li><b>Propose</b>a qualified match</li><li><b>Connect</b>with mutual consent</li></ol></section>
+<footer><blockquote>Your week, planned around the conversations worth having.</blockquote><small>Agent Mixer<br>Haunted Hacks · 2026</small></footer>
+</main></body></html>
