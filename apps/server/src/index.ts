@@ -137,6 +137,7 @@ function sse(attendee: string | null, req: Request) {
       subs.add(sub)
       ping = setInterval(() => write(`: ping\n\n`), 15000)
       req.signal.addEventListener("abort", () => { cleanup(); try { ctrl.close() } catch {} })
+      write(`: ok\n\n`) // first bytes right away so proxies (Cloudflare tunnel) open the stream
       write(`retry: 2000\n\n`)
       sub.send({ type: "event", view: await store.eventView() })
       if (attendee) {
@@ -151,7 +152,7 @@ function sse(attendee: string | null, req: Request) {
     cancel() { subs.delete(sub); clearInterval(ping) },
   })
   return new Response(stream, {
-    headers: { ...CORS, "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" },
+    headers: { ...CORS, "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", "x-accel-buffering": "no", connection: "keep-alive" },
   })
 }
 
