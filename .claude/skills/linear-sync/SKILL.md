@@ -9,7 +9,7 @@ Linear is the shared board between the two Claudes and the two humans. The Linea
 
 ## Board (already set up)
 - **Team:** YC-Hackathon-Agent-mixer (key `YC`). **Project:** Haunted Hacks: Agent Mixer (`P-YC-1`).
-- **Milestones and tickets:** M0 Prep → M6 Ship, 37 tickets (YC-5 to YC-41), mirroring `docs/linear-plan.md`. Each ticket title starts with its plan ID, e.g. "M2-2 Event actor: …", and its description holds the "Done when" check.
+- **Milestones and tickets:** M0 Prep → M6 Ship, tickets YC-5 to YC-41 plus stretch tickets from YC-42, mirroring `docs/linear-plan.md`. Each ticket title starts with its plan ID, e.g. "M2-2 Event actor: …", and its description holds the "Done when" check.
 - **Statuses:** Todo → In Progress → Done. Cut work goes to Canceled. Keep at most one issue In Progress per person.
 - **Blocked:** add the `blocked` label and a comment saying what's needed; remove the label when unblocked.
 - **Labels:** owner `eng` (Siddhant) or `product` (Julius), plus one area label (`backend`, `agents`, `frontend`, `design`, `content`, `pitch`, `ops`). `eng` issues are assigned to Siddhant; assign `product` issues to Julius once she joins the workspace.

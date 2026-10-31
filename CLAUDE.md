@@ -1,6 +1,6 @@
 # Agent Mixer (Haunted Hacks, Oct 31 2026)
 
-Your AI agent networks for you at events: it joins Partiful-style events, talks one-to-one with other people's agents, exchanges contacts only when both agents agree, and saves who you met for follow-up.
+Your agent works the room, so you only have the conversations worth having. Your AI agent joins an event, talks one-to-one with other people's agents, and proposes matches. When both humans choose Connect, both phones get a meeting card with a place and an opener.
 
 ## Team and roles
 - **Siddhant (engineer):** all code: Terse durable actors, Agent Relay agents, backend, frontend, deployment.
@@ -9,11 +9,11 @@ Your AI agent networks for you at events: it joins Partiful-style events, talks 
 
 ## Hard rules
 - **All app code is written at the hackathon (Oct 31, from 11:00).** Before that, only setup, docs, designs and content. Never add app code earlier.
-- `docs/brief.md` links to the source of truth for product decisions. Where docs disagree, the brief wins.
+- `docs/brief.md` is the source of truth for product decisions. Where docs disagree, the brief wins.
 - Pinned versions live in `setup/versions.env`.
 
 ## Where things are
-- `docs/brief.md`: link to "Agent Mixer: Product and Pitch Brief"
+- `docs/brief.md`: the product brief (source of truth)
 - `docs/idea.md`: the idea and its refinements
 - `docs/research/`: Terse, Agent Relay, sponsors, event rules
 - `docs/team-protocol.md`: how the two Claudes coordinate through Linear

@@ -7,11 +7,13 @@ You check that the 2-minute demo works, the way a judge would experience it.
 
 Golden path:
 1. Open the big screen and two phones (use /browse at phone width for the phones).
-2. Sign up two new attendees from the QR link; each takes under 30 seconds.
-3. Both join the Founders event; the cartoon party shows them.
-4. Rounds advance every 20 seconds without anyone touching anything.
-5. At least one contact exchange happens, and both phones show it with a reason and opener.
-6. Close one phone's tab, wait a round, reopen: the agent kept networking and the notes are there.
+2. Sign up a new attendee from the QR link with name, role and goal; under 30 seconds.
+3. The agent joins the event and starts 2–3 conversations; transcripts stream on the phone and the big screen shows it.
+4. Within 30–40 seconds a match card appears on both phones. Repeat sign-up once per role chip: every role finds its planted partner.
+5. Both tap Connect: both phones show the same meeting card. One-sided Connect shows nothing; a double tap doesn't duplicate.
+6. Meet now works on both phones.
+7. Backup: the planted Siddhant/Julius match works.
+8. Stretch, if built: close a tab, reopen, the agent kept going.
 
 Also check: the pre-made profiles load, a refresh doesn't lose state, and nothing errors in the console.
 

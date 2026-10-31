@@ -1,6 +1,6 @@
 # Agent Mixer
 
-Your AI agent networks for you at events, then tells you who to follow up with. Built at Haunted Hacks (Oct 31, 2026) by Siddhant Sancheti and Julius Leung.
+Your agent works the room, so you only have the conversations worth having. Built at Haunted Hacks (Oct 31, 2026) by Siddhant Sancheti and Julius Leung.
 
 > **Rule:** all app code is written at the hackathon. Everything committed before Oct 31 11:00 is setup, docs, designs and content only.
 
@@ -40,7 +40,7 @@ Then:
 | Agent | For | Owner |
 |---|---|---|
 | `product-designer` | Screen specs, wording, mockups in `docs/design/` | Julius |
-| `seed-profile-writer` | The 10–12 demo profiles in `docs/seed/` | Julius |
+| `seed-profile-writer` | The 4–6 demo agents and planted partners in `docs/seed/` | Julius |
 | `pitch-writer` | Deck, script, Q&A, submission in `docs/pitch/` | Julius |
 | `actor-engineer` | Terse durable actors | Siddhant |
 | `relay-engineer` | Agent Relay agents and bridge | Siddhant |
@@ -50,10 +50,10 @@ Then:
 Ask Claude to use one, e.g. "Use the seed-profile-writer agent to draft the profiles."
 
 ## How we stay in sync
-Linear is the shared board between both Claudes ([project](https://linear.app/yc-hackathon-agent-mixer/project/haunted-hacks-agent-mixer-9079e41d3b4a), 37 tickets across milestones M0–M6); GitHub carries the files. See `docs/team-protocol.md`.
+Linear is the shared board between both Claudes ([project](https://linear.app/yc-hackathon-agent-mixer/project/haunted-hacks-agent-mixer-9079e41d3b4a), tickets across milestones M0–M6); GitHub carries the files. See `docs/team-protocol.md`.
 
 ## Where things are
-- `docs/brief.md`: link to the product and pitch brief (source of truth)
+- `docs/brief.md`: the product brief (source of truth)
 - `docs/idea.md`: the idea and its refinements
 - `docs/research/`: Terse, Agent Relay, sponsors, event rules
 - `apps/`: app code (starts Oct 31, 11:00)

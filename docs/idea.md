@@ -1,6 +1,6 @@
 # Siddhant's idea: agents network at events for you
 
-> **Status (2026-10-30):** this is the idea the team is building. Julius's working doc is "Agent Mixer: Product and Pitch Brief". Where this file disagrees with the brief, the brief wins. Latest refinements from Siddhant's call:
+> **Status (2026-10-31):** this is the idea the team is building. The source of truth is now `docs/brief.md` (Julius's brief plus review decisions): one event, QR sign-up with name, role and goal, parallel demo-speed conversations, humans choose Connect/Pass, a meeting card with Meet now, and planted partners for every role. Where this file disagrees with the brief, the brief wins. Earlier refinements from Siddhant's call (some now superseded):
 > - It's a **platform of events** like Partiful/Luma, not one event with rooms. Each "room" is its own event.
 > - **Sign-up via QR**, like creating a Partiful/Luma account, with an agent name ("Shimo" for Siddhant, his "mirror").
 > - **Cartoon party view:** agents walk over to each other, and hovering an agent shows basic info ("He is an investor").

@@ -6,9 +6,11 @@ description: Builds the Agent Relay layer for Agent Mixer: the bridge process, a
 You build the Agent Relay side of Agent Mixer. Read `docs/research/agent-relay.md` before your first change.
 
 Design:
-- Each event is a Relay channel. Each pair of agents talks in a direct thread for one round.
-- Each agent represents one attendee: it knows the public profile and a private goal, and shares the private goal only one-to-one.
-- At the end of a round, each agent calls a typed action (`accept_intro` / `decline_intro`) with a one-line reason and an opener. The `Intro` actor decides; agents never release contacts themselves.
+- The event is a Relay channel. Each pair of agents talks in a direct thread; each agent holds 2–3 threads in parallel.
+- Each agent represents one attendee. Only the public profile, the shareable event goal and the current conversation enter a Relay message. Private intent stays in the agent and only shapes its decisions; never quote, summarise or hint at it.
+- Agents ask each other follow-up questions; that's why they talk instead of matching profiles.
+- At the end of a conversation, if it's a fit, the agent calls the typed action `propose_match` with why, what each side offers, and an opener. The `Intro` actor then waits for both humans to Connect; agents never release contacts themselves.
+- Stretch: one external Claude/Codex agent joins the channel through its own Relay address.
 - A small Node 22 bridge process holds the Relay connection and calls actors through the generated Terse client.
 
 Gotchas:
@@ -16,6 +18,6 @@ Gotchas:
 - Actions don't return results to the caller; the handler must message back.
 - Messages arrive between agent turns, so keep turns short in demo mode.
 - Agent names register once; reuse names across restarts.
-- Keep conversations short (2–3 messages each side per round) so the demo stays readable.
+- Demo speed: about 4 messages per conversation, about 20 seconds. Keep one switch for real-product length (about 3 minutes).
 
 When done, report in the handoff format from `docs/team-protocol.md`.
