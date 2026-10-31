@@ -79,6 +79,8 @@ class MockEngine {
   me: string | null = null
   started = false
   myMatchesMade = 0
+  /** My matches where the other side waits for my request, then accepts a few seconds later. */
+  acceptOnRequest = new Set<string>()
 
   constructor() {
     for (const s of SEEDS) this.profiles.set(s.id, s)
@@ -237,14 +239,20 @@ class MockEngine {
         myChoice: null,
         status: "pending",
         createdAt: Date.now(),
+        theyConnected: false,
       }
       this.summaries.set(side.id, [s, ...(this.summaries.get(side.id) ?? [])])
     }
-    // The other side decides on its own after a beat (seeds always connect when it's me).
-    const others = [a, b].filter((x) => x !== this.me)
-    for (const o of others) {
-      const delay = involvesMe ? 2500 + Math.random() * 3000 : 4000 + Math.random() * 6000
-      setTimeout(() => this.decide(iid, o, involvesMe || Math.random() < 0.7 ? "connect" : "pass"), delay)
+    // Connect requests demo: my 1st, 3rd... match -> the other side requests first (I accept or decline);
+    // my 2nd, 4th... -> they wait for my request and accept it a few seconds later.
+    if (involvesMe) {
+      const other = a === this.me ? b : a
+      if (this.myMatchesMade % 2 === 1) setTimeout(() => this.decide(iid, other, "connect"), 3000 + Math.random() * 2000)
+      else this.acceptOnRequest.add(iid)
+    } else {
+      for (const o of [a, b]) {
+        setTimeout(() => this.decide(iid, o, Math.random() < 0.7 ? "connect" : "pass"), 4000 + Math.random() * 6000)
+      }
     }
     this.emitIntro(intro)
   }
@@ -252,12 +260,10 @@ class MockEngine {
   decide(iid: string, who: string, choice: Choice): IntroState {
     const it = this.intros.get(iid)
     if (!it) throw new Error("no intro")
-    if (it.status === "connected") return it // locked after both Connect
-    if (it.choices[who] === choice) return it // same choice twice is a no-op
+    if (it.status === "connected" || it.choices[who] === choice) return this.introView(iid, who)
     it.choices = { ...it.choices, [who]: choice }
     const vals = Object.values(it.choices)
-    if (vals.includes("pass")) it.status = "passed"
-    else if (vals.every((v) => v === "connect")) {
+    if (vals.every((v) => v === "connect")) {
       it.status = "connected"
       this.connectedCount++
       it.meeting ??= {
@@ -268,17 +274,33 @@ class MockEngine {
           [it.b]: contactFor(it.profiles[it.b]),
         },
       }
-    } else it.status = "pending"
+    } else it.status = vals.includes("pass") ? "passed" : "pending"
     for (const id of [it.a, it.b]) {
+      const other = id === it.a ? it.b : it.a
       this.summaries.set(
         id,
         (this.summaries.get(id) ?? []).map((s) =>
-          s.introId === iid ? { ...s, status: it.status, myChoice: it.choices[id] ?? null } : s,
+          s.introId === iid
+            ? { ...s, status: this.statusFor(it, id), myChoice: it.choices[id] ?? null, theyConnected: it.choices[other] === "connect" }
+            : s,
         ),
       )
     }
+    // The other side accepts my request after a few seconds (unless I withdraw first).
+    if (who === this.me && choice === "connect" && this.acceptOnRequest.has(iid)) {
+      const other = who === it.a ? it.b : it.a
+      setTimeout(() => {
+        if (it.choices[who] === "connect") this.decide(iid, other, "connect")
+      }, 3500)
+    }
     this.emitIntro(it)
-    return it
+    return this.introView(iid, who)
+  }
+
+  /** Silent decline: a viewer sees "passed" only for their own Pass. */
+  statusFor(it: IntroState, viewer: string): IntroState["status"] {
+    if (it.status === "connected") return "connected"
+    return it.choices[viewer] === "pass" ? "passed" : "pending"
   }
 
   chat(iid: string, who: string, text: string): IntroState {
@@ -363,7 +385,9 @@ class MockEngine {
     const it = this.intros.get(iid)!
     const copy: IntroState = JSON.parse(JSON.stringify(it))
     if (copy.status !== "connected" && copy.meeting) copy.meeting.contacts = {}
-    void as
+    const other = as === copy.a ? copy.b : copy.a
+    if (copy.choices[other] === "pass") copy.choices[other] = null
+    copy.status = this.statusFor(it, as)
     return copy
   }
 

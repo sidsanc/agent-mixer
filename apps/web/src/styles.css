@@ -2110,3 +2110,6 @@ textarea:focus-visible {
     animation: none;
   }
 }
+.toast > .face {
+  flex: none;
+}

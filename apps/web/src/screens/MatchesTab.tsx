@@ -269,7 +269,7 @@ function MatchDetail({
         <>
           <div className="presence-line">You're connected. This match is locked and your human chat is open.</div>
           <button className="cta cyan" onClick={onChat}>
-            You're connected · Open chat with {first(o.name)}
+            Open chat with {first(o.name)}
           </button>
           <MeetPanel m={m} it={it} me={me} mx={mx} />
         </>
