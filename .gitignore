@@ -10,3 +10,7 @@ dist/
 .claude/settings/
 .claude/system-prompts/
 .claude/settings.local.json
+
+# Runtime state
+apps/server/.relay-tokens.json
+.durable-actors/
