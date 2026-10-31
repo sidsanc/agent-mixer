@@ -29,6 +29,12 @@ export function toPublic(p: Profile | PublicProfile): PublicProfile {
   return { id, name, agentName, role, bio, shareableGoal, attendance, ...(avatar && AVATAR_IDS.includes(avatar) ? { avatar } : {}), ...(seeded ? { seeded } : {}), ...(plantedFor?.length ? { plantedFor } : {}) }
 }
 
+/** A pair may talk again (a follow-up) this long after their last conversation ended. PAIR_COOLDOWN_MS overrides. */
+export function pairCooldownMs(): number {
+  const v = Number(process.env.PAIR_COOLDOWN_MS)
+  return Number.isFinite(v) && v >= 0 && process.env.PAIR_COOLDOWN_MS !== undefined && process.env.PAIR_COOLDOWN_MS !== "" ? v : 90_000
+}
+
 /** Meet now request lifetime; MEET_NOW_TTL_MS env overrides (short values are handy for tests). */
 export function meetNowTtl(): number {
   const v = Number(process.env.MEET_NOW_TTL_MS)

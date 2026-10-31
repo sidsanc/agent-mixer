@@ -61,6 +61,8 @@ interface $EventContract {
         leases: Record<string, number>
         pending: Conversation[]
         pairsSeen: string[]
+        pairEndedAt: Record<string, number>
+        cooldownMs: number
         talkCount: Record<string, number>
         counter: number
         stopped: string[]
@@ -81,6 +83,7 @@ interface $EventContract {
             leaseMs?: number
             name?: string
             seedChatter?: boolean
+            cooldownMs?: number
         }): Promise<void>
         endConversation(conversationId: string, status: ConversationStatus, introId?: string): Promise<void>
         isStopped(conversationId: string): Promise<boolean>
@@ -236,9 +239,11 @@ interface PublicProfile {
     seeded?: boolean
     plantedFor?: Role[]
     attendance?: Attendance
+    avatar?: AvatarId
 }
 type ActiveRow = EventView["active"][number]
 type Attendance = "onsite" | "agent-only"
+type AvatarId = "man1" | "man2" | "woman1" | "woman2" | "robot"
 type Choice = "connect" | "pass"
 type ConversationStatus = "active" | "ended" | "matched" | "stopped"
 type IntroStatus = "pending" | "connected" | "passed"

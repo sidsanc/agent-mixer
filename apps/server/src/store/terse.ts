@@ -12,7 +12,7 @@ import {
 } from "@agent-mixer/shared"
 import { actors, ActorProxy, type ActorAuthorization } from "../generated/index.js"
 import { HttpError } from "./memory"
-import { MEETING_POINTS, meetNowTtl, summaryFields, toPublic, type Store } from "./types"
+import { MEETING_POINTS, meetNowTtl, pairCooldownMs, summaryFields, toPublic, type Store } from "./types"
 
 const EVENT_POLL_MS = Number(process.env.TERSE_EVENT_POLL_MS ?? 1500)
 
@@ -48,7 +48,7 @@ export class TerseStore implements Store {
   constructor() {
     const consts = process.env.DEMO_MODE === "0" ? REAL : DEMO
     this.ready = ev()
-      .configure({ name: EVENT_NAME, maxParallel: consts.maxParallel, tickMs: 3000, seedChatter: process.env.SEED_CHATTER !== "0" })
+      .configure({ name: EVENT_NAME, maxParallel: consts.maxParallel, tickMs: 3000, seedChatter: process.env.SEED_CHATTER !== "0", cooldownMs: pairCooldownMs() })
       .catch((e) => console.error("[terse] Event.configure failed", e))
   }
 
