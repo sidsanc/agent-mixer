@@ -12,7 +12,7 @@ Screens:
 4. Meeting card (phone): after both Connect, the meeting point, opener and a Meet now button; both phones show the same card.
 5. Big screen: projector party view, live conversation feed, matches counter, QR code.
 
-Stretch, only if the core demo works by 2:00: basic chat inside the meeting card.
+Also core: basic human chat after both Connect (messages on both phones). Follow Julius's chat design in `docs/design/`.
 
 Rules:
 - Build against the shared types first with mock data, then switch to live actor state.

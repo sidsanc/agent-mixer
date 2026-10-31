@@ -9,7 +9,7 @@ Linear setup (done):
 
 Each ticket's description holds its "Done when" line. These tickets exist in Linear; this file mirrors them.
 
-**Updated Oct 31** to match Julius's brief (`docs/brief.md`): one event, QR sign-up with name, role and goal, parallel demo-speed conversations, match card with Connect/Pass, meeting card with Meet now, planted partners for every role. Human chat and the external agent are stretch.
+**Updated Oct 31** to match Julius's brief (`docs/brief.md`): one event, QR sign-up with name, role and goal, parallel demo-speed conversations, match card with Connect/Pass, meeting card with Meet now, planted partners for every role. The external agent is stretch. **Later on Oct 31: human chat is core again** (Siddhant and Julius decided to keep it; Julius is sharing the product details and design).
 
 ## M0: Prep (tonight, Oct 30). No app code.
 | ID | Ticket | Owner | Area | Done when |
@@ -60,7 +60,7 @@ Each ticket's description holds its "Done when" line. These tickets exist in Lin
 | M4-3 | Big screen: projector party view, live feed, match counter, QR | eng | frontend | Readable from the back of the room |
 | M4-4 | Persistence beat (stretch): close app, reopen, agent kept going | eng | backend | Works three times in a row |
 | M4-5 | Test the app as a real user on your phone | product | design | Confusing spots posted as comments |
-| M4-6 | Stretch: basic human chat in the meeting card | eng | frontend | Messages appear on both phones; held by the `Intro` actor. Start only if the core demo works by 2:00 |
+| M4-6 | Basic human chat after mutual Connect (core) | eng | frontend | Messages appear on both phones; held by the `Intro` actor. Build from Julius's chat design |
 | M4-7 | Stretch: one external Claude/Codex agent joins via Agent Relay | eng | agents | It holds a conversation with a seeded agent on stage. Start only if Relay works by 2:00 |
 
 ## M5: Polish and rehearse (2:45–3:15)
@@ -78,4 +78,4 @@ Each ticket's description holds its "Done when" line. These tickets exist in Lin
 | M6-3 | Final deck and Builderbase submission | product | pitch | Submitted by 3:50 |
 | M6-4 | Repo check: README, pinned versions, no secrets | eng | ops | `git log` and `.env` checked |
 
-**Cut list if behind (in order):** M4-6 chat → M4-7 external agent → M4-4 persistence beat → M4-3 big screen polish → live judge sign-up (use the planted Siddhant/Julius match and pre-made agents only).
+**Cut list if behind (in order):** M4-7 external agent → M4-4 persistence beat → M4-3 big screen polish → M4-6 chat → live judge sign-up (use the planted Siddhant/Julius match and pre-made agents only).

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "maya-chen",
+    "name": "Maya Chen",
+    "agentName": "Maya's agent",
+    "role": "founder",
+    "bio": "Founder of Tracewell, open-source tracing for LLM agents. Ex-Datadog.",
+    "shareableGoal": "Raise a seed round for Tracewell and meet investors who know developer tools.",
+    "privateIntent": "Already has a soft lead at 1.5M; wants one more angel with infra operator experience, and would rather not talk to generalist funds.",
+    "contact": "maya@tracewell.dev",
+    "plantedFor": ["investor"],
+    "seeded": true,
+    "avatar": "woman1"
+  },
+  {
+    "id": "dev-raman",
+    "name": "Dev Raman",
+    "agentName": "Dev's agent",
+    "role": "investor",
+    "bio": "Partner at Lantern Ventures. Writes pre-seed and seed checks in AI infrastructure.",
+    "shareableGoal": "Meet founders building AI infrastructure or developer tools before they raise.",
+    "privateIntent": "Fund is nearly fully deployed this quarter; looking for two more seed deals, strongly prefers technical solo founders.",
+    "contact": "dev@lantern.vc",
+    "plantedFor": ["founder"],
+    "seeded": true,
+    "avatar": "man1"
+  },
+  {
+    "id": "priya-nair",
+    "name": "Priya Nair",
+    "agentName": "Priya's agent",
+    "role": "founder",
+    "bio": "Founder of Ledgerline, AI bookkeeping for small restaurants. 40 paying customers.",
+    "shareableGoal": "Hire a first engineer who likes owning the whole stack.",
+    "privateIntent": "Can offer 1.5 to 2 percent equity and a below-market salary until the seed closes; worried about candidates who only want big-company process.",
+    "contact": "priya@ledgerline.ai",
+    "plantedFor": ["engineer"],
+    "seeded": true,
+    "avatar": "woman2"
+  },
+  {
+    "id": "leo-okafor",
+    "name": "Leo Okafor",
+    "agentName": "Leo's agent",
+    "role": "founder",
+    "bio": "Founder of Pollen, a booking app for independent fitness studios. Just raised a pre-seed.",
+    "shareableGoal": "Find a first designer and a first sales hire for Pollen.",
+    "privateIntent": "The current app was built from templates and churn is high; needs someone who can redo onboarding fast, and a seller who has sold to gyms before.",
+    "contact": "leo@pollen.fit",
+    "plantedFor": ["designer", "gtm"],
+    "seeded": true,
+    "avatar": "man2"
+  },
+  {
+    "id": "sam-rivera",
+    "name": "Sam Rivera",
+    "agentName": "Sam's agent",
+    "role": "founder",
+    "bio": "Second-time founder, now exploring ideas in climate and community software. Loves introductions.",
+    "shareableGoal": "Meet curious people, swap ideas and make useful introductions.",
+    "privateIntent": "Quietly looking for a cofounder for the next company; wants to see who is energetic and generous with ideas.",
+    "contact": "sam@riverahq.com",
+    "plantedFor": ["other"],
+    "seeded": true,
+    "avatar": "robot"
+  },
+  {
+    "id": "jordan-park",
+    "name": "Jordan Park",
+    "agentName": "Jordan's agent",
+    "role": "engineer",
+    "bio": "Senior backend engineer at a payments company. Builds distributed systems and agent tooling on weekends.",
+    "shareableGoal": "Explore joining an early-stage startup as a founding engineer.",
+    "privateIntent": "Has a big-company offer that expires in three weeks; would leave for the right founder, needs at least a modest salary.",
+    "contact": "jordan.park@hey.com",
+    "plantedFor": ["founder"],
+    "seeded": true,
+    "avatar": "man1"
+  }
+]
