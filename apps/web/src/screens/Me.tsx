@@ -189,7 +189,7 @@ export function Me() {
             } else openMatch(id)
           }}
         >
-          <Avatar id={toast.m.other.id} role={toast.m.other.role} size={38} />
+          <Avatar id={toast.m.other.id} role={toast.m.other.role} avatar={toast.m.other.avatar} size={38} />
           <span>
             <strong>
               {toast.kind === "connected"
@@ -206,7 +206,7 @@ export function Me() {
 
       {pingMatch && !celebrate && !toast && (
         <div className="toast meet">
-          <Avatar id={pingMatch.other.id} role={pingMatch.other.role} size={38} />
+          <Avatar id={pingMatch.other.id} role={pingMatch.other.role} avatar={pingMatch.other.avatar} size={38} />
           <span>
             <strong>{first(pingMatch.other.name)} wants to meet now</strong>
             <small>Accept or decline in your chat.</small>
@@ -230,7 +230,7 @@ export function Me() {
             <div className="pair-faces big">
               <Avatar id={me} role={mx.attendee?.profile?.role ?? "other"} size={88} agent />
               <span className="spark">✦</span>
-              <Avatar id={celebrate.other.id} role={celebrate.other.role} size={88} />
+              <Avatar id={celebrate.other.id} role={celebrate.other.role} avatar={celebrate.other.avatar} size={88} />
             </div>
             <h1 className="celebrate-title">It's a match</h1>
             <p className="celebrate-sub">

@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import type { Attendance, Choice, MeetAction, Profile, Role, ServerPush } from "@agent-mixer/shared"
-import { EVENT_NAME, ROLES } from "@agent-mixer/shared"
+import { AVATAR_IDS, EVENT_NAME, ROLES } from "@agent-mixer/shared"
 import type { Store } from "./store/types"
 import { MemoryStore, HttpError } from "./store/memory"
 import { Engine, DirectTransport } from "./agents/engine"
@@ -184,12 +184,14 @@ async function signup(req: Request) {
   if (!roleIds.has(role)) throw new HttpError(400, `role must be one of ${[...roleIds].join(", ")}`)
   const attendance = String(b.attendance ?? "onsite") as Attendance
   if (attendance !== "onsite" && attendance !== "agent-only") throw new HttpError(400, "attendance must be onsite or agent-only")
+  const avatar = AVATAR_IDS.find((a) => a === b.avatar)
   const id = `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`
   const p: Profile = {
     id, name, agentName: `${name.split(" ")[0]}'s agent`, role,
     bio: String(b.bio ?? "").trim().slice(0, 200),
     shareableGoal: goal,
     attendance,
+    ...(avatar ? { avatar } : {}),
     privateIntent: String(b.privateIntent ?? "").trim().slice(0, 500),
     contact: String(b.contact ?? "").trim().slice(0, 120) || `Find ${name} at ${EVENT_NAME}`,
   }

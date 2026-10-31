@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { EVENT_NAME, ROLES, type Attendance, type Role } from "@agent-mixer/shared"
+import { EVENT_NAME, ROLES, type Attendance, type AvatarId, type Role } from "@agent-mixer/shared"
 import { myId } from "../backend"
 import { useBackend } from "../useMixer"
+import { faceClass } from "../components/Avatar"
+
+// Two men, two women and a robot. The dot is the outfit colour the venue draws.
+const CAST: { id: AvatarId; label: string; dot: string }[] = [
+  { id: "man1", label: "Floral", dot: "#b63c9a" },
+  { id: "man2", label: "Blue", dot: "#3d7bf0" },
+  { id: "woman1", label: "Cargo", dot: "#d9c3a0" },
+  { id: "woman2", label: "Pink", dot: "#ff5cab" },
+  { id: "robot", label: "Robot", dot: "#72eee9" },
+]
 
 /** Event welcome + per-event setup in one screen. Under 30 seconds, no password. */
 export function Signup() {
@@ -13,6 +23,7 @@ export function Signup() {
   const [eventName, setEventName] = useState(EVENT_NAME)
   const [name, setName] = useState("")
   const [role, setRole] = useState<Role | null>(null)
+  const [avatar, setAvatar] = useState<AvatarId | null>(null)
   const [goal, setGoal] = useState("")
   const [bio, setBio] = useState("")
   const [privateIntent, setPrivateIntent] = useState("")
@@ -49,6 +60,8 @@ export function Signup() {
         privateIntent: privateIntent.trim() || undefined,
         attendance,
         contact: contact.trim() || undefined,
+        // Skipped = a random character.
+        avatar: avatar ?? CAST[Math.floor(Math.random() * CAST.length)].id,
       })
       myId.set(attendeeId)
       nav("/me", { replace: true })
@@ -96,6 +109,21 @@ export function Signup() {
             {ROLES.map((r) => (
               <button type="button" key={r.id} className={`chip ${role === r.id ? "on" : ""}`} aria-pressed={role === r.id} onClick={() => setRole(r.id)}>
                 {r.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="field">
+          <legend>
+            Pick your character <em>· optional</em>
+          </legend>
+          <div className="cast">
+            {CAST.map((c) => (
+              <button type="button" key={c.id} className={avatar === c.id ? "on" : ""} aria-pressed={avatar === c.id} onClick={() => setAvatar(avatar === c.id ? null : c.id)}>
+                <span className={`face ${faceClass("", c.id)}`} aria-hidden="true" />
+                <i style={{ background: c.dot }} aria-hidden="true" />
+                {c.label}
               </button>
             ))}
           </div>

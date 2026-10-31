@@ -22,7 +22,11 @@ export interface PublicProfile {
   seeded?: boolean
   plantedFor?: Role[] // demo seeds: roles this agent is a strong partner for (boosts the Router score)
   attendance?: Attendance // public; the server always sets it (default "onsite"). Meet now needs both onsite.
+  avatar?: AvatarId // picked at signup; missing = hashed from id
 }
+
+export type AvatarId = "man1" | "man2" | "woman1" | "woman2" | "robot"
+export const AVATAR_IDS: AvatarId[] = ["man1", "man2", "woman1", "woman2", "robot"]
 
 export type Attendance = "onsite" | "agent-only"
 

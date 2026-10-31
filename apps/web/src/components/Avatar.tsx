@@ -1,4 +1,4 @@
-import type { Role } from "@agent-mixer/shared"
+import type { AvatarId, Role } from "@agent-mixer/shared"
 
 // Vice City Social accents (docs/design/vice-agent-world.html).
 export const ROLE_COLOR: Record<Role, string> = {
@@ -28,9 +28,21 @@ export function hash(s: string) {
 /** Same sprite the venue world draws for this person (1..3 of the character sheet). */
 export const spriteOf = (id: string) => 1 + (hash(id) % 3)
 
+/** Portrait face for a picked character: men share the sunglasses face, women the woman face. */
+export const FACE_OF: Record<AvatarId, "man" | "woman" | "robot"> = {
+  man1: "man",
+  man2: "man",
+  woman1: "woman",
+  woman2: "woman",
+  robot: "robot",
+}
+
+export const faceClass = (id: string, avatar?: AvatarId | null) => (avatar && FACE_OF[avatar] ? `face-p-${FACE_OF[avatar]}` : `face-s${spriteOf(id)}`)
+
 interface Props {
   id: string
   role: Role
+  avatar?: AvatarId | null
   size?: number
   /** Your own agent: the robot portrait. */
   agent?: boolean
@@ -39,10 +51,10 @@ interface Props {
 }
 
 /** Round face crop from the character art. */
-export function Avatar({ id, role, size = 46, agent = false, className = "" }: Props) {
+export function Avatar({ id, role, avatar, size = 46, agent = false, className = "" }: Props) {
   return (
     <span
-      className={`face ${agent ? "face-agent" : `face-s${spriteOf(id)}`} ${className}`}
+      className={`face ${agent ? "face-agent" : faceClass(id, avatar)} ${className}`}
       style={{ width: size, height: size, boxShadow: `0 0 0 2px ${ROLE_COLOR[role] ?? ROLE_COLOR.other}` }}
       aria-hidden="true"
     />

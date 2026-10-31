@@ -2,7 +2,7 @@ import type {
   AttendeeView, Choice, MeetAction, Conversation, ConversationStatus, EventView, IntroState, Line,
   MatchSummary, Profile, PublicProfile, ServerPush,
 } from "@agent-mixer/shared"
-import { MEET_NOW_TTL_MS } from "@agent-mixer/shared"
+import { AVATAR_IDS, MEET_NOW_TTL_MS } from "@agent-mixer/shared"
 
 export interface Store {
   createAttendee(p: Profile): Promise<void>
@@ -24,9 +24,9 @@ export interface Store {
 }
 
 export function toPublic(p: Profile | PublicProfile): PublicProfile {
-  const { id, name, agentName, role, bio, shareableGoal, seeded, plantedFor } = p
+  const { id, name, agentName, role, bio, shareableGoal, seeded, plantedFor, avatar } = p
   const attendance = p.attendance === "agent-only" ? "agent-only" : "onsite"
-  return { id, name, agentName, role, bio, shareableGoal, attendance, ...(seeded ? { seeded } : {}), ...(plantedFor?.length ? { plantedFor } : {}) }
+  return { id, name, agentName, role, bio, shareableGoal, attendance, ...(avatar && AVATAR_IDS.includes(avatar) ? { avatar } : {}), ...(seeded ? { seeded } : {}), ...(plantedFor?.length ? { plantedFor } : {}) }
 }
 
 /** Meet now request lifetime; MEET_NOW_TTL_MS env overrides (short values are handy for tests). */
