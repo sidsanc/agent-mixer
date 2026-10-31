@@ -81,7 +81,9 @@ export function useMixer(attendeeId: string | null): MixerState {
     setAttendee(null)
     setIntros({})
     load()
+    let lastPush = 0
     const onPush = (p: ServerPush) => {
+      lastPush = Date.now()
       if (p.type === "event") setEvent(p.view)
       else if (p.type === "attendee" && p.id === attendeeId) {
         if (!p.view.profile) setNotFound(true)
@@ -93,8 +95,16 @@ export function useMixer(attendeeId: string | null): MixerState {
       setConnected(ok)
       if (ok) load()
     })
-    // Safety net in live mode: slow poll in case a push is missed.
-    const poll = backend.mode === "live" ? setInterval(load, 6000) : null
+    // Safety net in live mode. Some proxies (e.g. Cloudflare quick tunnels) buffer the SSE stream, so when no push
+    // has arrived for 4s we poll every 2s; when pushes flow, this only refreshes every 12s.
+    let lastLoad = Date.now()
+    const poll = backend.mode === "live"
+      ? setInterval(() => {
+          const now = Date.now()
+          const silent = now - lastPush > 4000
+          if (silent || now - lastLoad > 12000) { lastLoad = now; load() }
+        }, 2000)
+      : null
     return () => {
       unsub()
       if (poll) clearInterval(poll)
