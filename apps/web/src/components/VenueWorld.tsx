@@ -20,8 +20,8 @@ export interface WorldBubble {
 
 interface Props {
   agents: WorldAgent[]
-  /** Pairs currently talking: they walk to a shared spot, stop, face each other and talk.
-   *  On the phone, pass [] — my partners wait at their own spots and my agent visits `focus`. */
+  /** Pairs currently talking: they meet at a free spot near the midpoint of their own spots, stand
+   *  face to face and talk. On the phone, pass [] — my partners wait at their own spots and my agent visits `focus`. */
   pairs: [string, string][]
   /** Phone: the partner my agent walks toward. */
   focus?: string | null
@@ -39,7 +39,8 @@ type Sim = {
   vy: number
   tx: number
   ty: number
-  wait: number
+  hx: number // home spot (fractions of width/height): where this guest stands when not talking
+  hy: number
   walk: number
   dir: number
   phase: number
@@ -49,6 +50,7 @@ type Sim = {
   partner: string | null // who this agent is talking with right now
   settled: boolean // standing at the talk spot (no sliding while talking)
   face: number // 1 = facing right, -1 = facing left
+  turnAt: number // next idle glance the other way
 }
 
 type Frame = { sx: number; sy: number; sw: number; sh: number; ax: number; ay: number }
@@ -121,7 +123,6 @@ function hash(s: string) {
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-const toward = (v: number, t: number, m: number) => (v < t ? Math.min(v + m, t) : Math.max(v - m, t))
 
 function loadImg(src: string) {
   const i = new Image()
@@ -248,7 +249,7 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
     ro.observe(cv)
     resize()
 
-    // Floor band where people can stand (fractions of height).
+    // Floor band where people can stand (fractions of width/height).
     const band = () => (props.current.variant === "phone" ? { y0: 0.5, y1: 0.8, x0: 0.1, x1: 0.9 } : { y0: 0.42, y1: 0.86, x0: 0.05, x1: 0.95 })
     const scaleAt = (y: number) => {
       const b = band()
@@ -256,59 +257,116 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
       const base = props.current.variant === "phone" ? H / 780 : H / 620
       return (0.62 + u * 0.55) * base
     }
-    const randSpot = () => {
+    const MX = 0.035 // margin inside the band
+    const MY = 0.03
+    /** Keep a spot (fractions) on the floor, leaving `half` px either side for a pair. */
+    const onFloor = (fx: number, fy: number, half = 0) => {
       const b = band()
-      return { x: W * (b.x0 + Math.random() * (b.x1 - b.x0)), y: H * (b.y0 + Math.random() * (b.y1 - b.y0)) }
+      const hx = W ? half / W : 0
+      return { fx: clamp(fx, b.x0 + MX + hx, b.x1 - MX - hx), fy: clamp(fy, b.y0 + MY, b.y1 - MY) }
+    }
+    // Vertical gaps count less: people are tall, so someone a little further back in the same
+    // column is hidden behind the one in front (and so is their bubble). Prefer side-by-side spacing.
+    const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, (ay - by) * 0.6)
+    /** Where everyone else is standing or heading (px). */
+    const taken = (ex: string[]) => {
+      const out: { x: number; y: number }[] = []
+      for (const [id, s] of sims) if (!ex.includes(id)) out.push({ x: s.tx, y: s.ty })
+      return out
+    }
+    const clearance = (x: number, y: number, pts: { x: number; y: number }[]) => {
+      let m = 1e4
+      for (const p of pts) m = Math.min(m, dist(x, y, p.x, p.y))
+      return m
+    }
+    /** Best-candidate sampling (Poisson-disk-like): the floor spot furthest from everyone else.
+     *  `near` pulls it toward a point (a pair's midpoint); `half` reserves room for two people side by side. */
+    function freeSpot(pts: { x: number; y: number }[], opts: { near?: { x: number; y: number }; radius?: number; pull?: number; half?: number } = {}) {
+      const { near, radius = 0, pull = 0, half = 0 } = opts
+      const b = band()
+      let best = { fx: (b.x0 + b.x1) / 2, fy: (b.y0 + b.y1) / 2 }
+      let bestScore = -Infinity
+      for (let i = 0; i < 32; i++) {
+        let c
+        if (near) {
+          const a = Math.random() * Math.PI * 2
+          const r = i === 0 ? 0 : Math.sqrt(Math.random()) * radius
+          c = onFloor((near.x + Math.cos(a) * r) / W, (near.y + Math.sin(a) * r * 0.5) / H, half)
+        } else c = onFloor(b.x0 + Math.random() * (b.x1 - b.x0), b.y0 + Math.random() * (b.y1 - b.y0), half)
+        const px = c.fx * W
+        const py = c.fy * H
+        const room = Math.min(clearance(px - half, py, pts), clearance(px + half, py, pts), 600)
+        const score = room - (near ? pull * dist(px, py, near.x, near.y) : 0)
+        if (score > bestScore) {
+          bestScore = score
+          best = c
+        }
+      }
+      return best
+    }
+    /** Half the distance between two people talking: about one body-width between them. */
+    const halfGap = (y: number) => 38 * scaleAt(y)
+    /** A spot one conversation-width beside someone standing at (fx, fy): the side that stays on
+     *  the floor (never squeezed onto them at the edge), then the side with more room. */
+    const beside = (fx: number, fy: number, pts: { x: number; y: number }[]) => {
+      const g = 2 * halfGap(fy * H)
+      const sides = [-1, 1].map((d) => {
+        const p = onFloor(fx + (d * g) / W, fy)
+        const squeezed = Math.abs(p.fx - fx) * W < g * 0.9
+        return { p, score: (squeezed ? -1e5 : 0) + clearance(p.fx * W, p.fy * H, pts) }
+      })
+      return sides[0].score >= sides[1].score ? sides[0].p : sides[1].p
     }
 
-    // Meeting spots for pairs on the big screen: a stable slot per pair, so a new pair
-    // never makes the others walk away mid-conversation.
-    // Fill order zig-zags between the two rows so neighbouring pairs (and their bubbles) don't touch.
-    const ORDER = [
-      [0, 0],
-      [1, 2],
-      [0, 2],
-      [1, 0],
-      [0, 1],
-      [1, 3],
-      [0, 3],
-      [1, 1],
-    ]
-    const spotFor = (i: number, n: number) => {
-      const b = band()
-      const cols = 4
-      const rows = Math.max(2, Math.ceil(n / cols))
-      const [row, col] = i < ORDER.length ? ORDER[i] : [Math.floor(i / cols), i % cols]
-      // Stagger alternate rows so pairs do not stand in a straight line.
-      const off = row % 2 ? 0.5 / cols : 0
-      const x = W * (b.x0 + 0.06 + ((((col + 0.5) / cols + off) % 1) * (b.x1 - b.x0 - 0.12)))
-      const y = H * (b.y0 + 0.08 + ((row + 0.5) / rows) * (b.y1 - b.y0 - 0.16))
-      return { x, y }
-    }
-    const slots = new Map<string, number>()
-    const slotOf = (key: string, live: Set<string>) => {
-      for (const k of [...slots.keys()]) if (!live.has(k)) slots.delete(k)
-      let i = slots.get(key)
-      if (i === undefined) {
-        const used = new Set(slots.values())
-        i = 0
-        while (used.has(i)) i++
-        slots.set(key, i)
+    // Big screen: which pairs are standing together right now. An agent shows one conversation
+    // at a time; with several, it stays a few seconds, then walks to the next partner, who waits.
+    type Engagement = { a: string; b: string; pos: Map<string, { fx: number; fy: number }>; settledAt: number }
+    const engaged = new Map<string, Engagement>()
+    const lastEngaged = new Map<string, number>()
+    const DWELL = 6
+    // Phone: where my agent stands beside the partner it is visiting.
+    let visit: { id: string; fx: number; fy: number } | null = null
+    let nextWander = 3
+
+    /** Two side-by-side spots for a pair, facing each other. With a hub, the partner keeps its spot. */
+    function pairSpots(a: string, b: string, hub: string | null) {
+      const A = sims.get(a)!
+      const B = sims.get(b)!
+      const pts = taken([a, b])
+      const pos = new Map<string, { fx: number; fy: number }>()
+      if (hub) {
+        const anchor = hub === a ? b : a
+        const N = sims.get(anchor)!
+        pos.set(anchor, { fx: N.hx, fy: N.hy })
+        pos.set(hub, beside(N.hx, N.hy, pts))
+        return pos
       }
-      return i
+      const mid = { x: (A.hx + B.hx) * 0.5 * W, y: (A.hy + B.hy) * 0.5 * H }
+      const half = halfGap(mid.y)
+      const c = freeSpot(pts, { near: mid, radius: W * 0.3, pull: 0.2, half })
+      // Whoever is further left takes the left side, so nobody crosses over.
+      const aLeft = A.x <= B.x
+      pos.set(a, { fx: c.fx + ((aLeft ? -1 : 1) * half) / W, fy: c.fy })
+      pos.set(b, { fx: c.fx + ((aLeft ? 1 : -1) * half) / W, fy: c.fy })
+      return pos
     }
-    // Phone: where each of my partners waits for my agent (fractions of the floor band).
-    const STATIONS = [
-      { x: 0.7, y: 0.3 },
-      { x: 0.28, y: 0.18 },
-      { x: 0.68, y: 0.95 },
-      { x: 0.3, y: 0.8 },
-    ]
+
+    const goTo = (s: Sim, x: number, y: number) => {
+      if (Math.hypot(s.tx - x, s.ty - y) > 2) {
+        s.tx = x
+        s.ty = y
+        s.settled = false
+      }
+    }
 
     function plan() {
       const { agents, pairs, focus, partners, variant } = props.current
+      if (!W || !H) return
       const ids = new Set(agents.map((a) => a.id))
       for (const id of [...sims.keys()]) if (!ids.has(id)) sims.delete(id)
+      const fresh = agents.filter((a) => !sims.has(a.id))
+      // A crowd loading at once just appears in place; a single arrival walks in from the door.
+      const bulk = fresh.length > 2 || t < 1.5
       for (const a of agents) {
         const look = spriteFor(a)
         const ex = sims.get(a.id)
@@ -317,94 +375,133 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
           ex.tint = look.tint
           continue
         }
-        const s = randSpot()
-        // New arrivals walk in from the bottom edge.
+        const h = freeSpot(taken([]))
+        const x = h.fx * W
+        const y = h.fy * H
         sims.set(a.id, {
-          x: s.x,
-          y: H * 0.98,
+          x,
+          y: bulk ? y : H * 0.98,
           vx: 0,
           vy: 0,
-          tx: s.x,
-          ty: s.y,
-          wait: 0,
+          tx: x,
+          ty: y,
+          hx: h.fx,
+          hy: h.fy,
           walk: 0,
-          dir: 0,
+          dir: 2,
           phase: (hash(a.id) % 100) / 16,
           sprite: look.sprite,
           tint: look.tint,
           bornAt: t,
           partner: null,
-          settled: false,
-          face: 1,
+          settled: bulk,
+          face: hash(a.id) % 2 ? 1 : -1,
+          turnAt: t + 2 + Math.random() * 6,
         })
       }
-      const talking = new Map<string, string>()
-      const target = (id: string, x: number, y: number, partner: string) => {
-        const S = sims.get(id)
-        if (!S) return
-        // A new spot means walking again; the same spot keeps them planted.
-        if (Math.hypot(S.tx - x, S.ty - y) > 2) {
-          S.tx = x
-          S.ty = y
-          S.settled = false
-        }
-        S.wait = 0
-        talking.set(id, partner)
-      }
-      const k = H / (variant === "phone" ? 780 : 620)
+
+      const talking = new Map<string, { x: number; y: number; partner: string }>()
       if (variant === "screen") {
-        const sep = 34 * k
-        const live = new Set(pairs.map(([a, b]) => [a, b].sort().join("|")))
+        const live = new Map<string, [string, string]>()
+        const degree = new Map<string, number>()
         for (const [a, b] of pairs) {
-          if (talking.has(a) || talking.has(b)) continue // one conversation on screen per agent
-          const sp = spotFor(slotOf([a, b].sort().join("|"), live), Math.max(8, pairs.length))
-          // Whoever is already further left takes the left side, so nobody crosses over.
-          const A = sims.get(a), B = sims.get(b)
-          const aLeft = !A || !B || A.x <= B.x
-          target(a, sp.x + (aLeft ? -sep : sep), sp.y, b)
-          target(b, sp.x + (aLeft ? sep : -sep), sp.y, a)
+          if (a === b || !sims.has(a) || !sims.has(b)) continue
+          const key = [a, b].sort().join("|")
+          if (live.has(key)) continue
+          live.set(key, [a, b])
+          degree.set(a, (degree.get(a) ?? 0) + 1)
+          degree.set(b, (degree.get(b) ?? 0) + 1)
+        }
+        for (const k of [...engaged.keys()]) if (!live.has(k)) engaged.delete(k)
+        const busy = () => {
+          const s = new Set<string>()
+          for (const e of engaged.values()) s.add(e.a).add(e.b)
+          return s
+        }
+        // Turn over: after a few seconds together, move on if someone free is waiting for one of them.
+        for (const [key, e] of [...engaged]) {
+          if (!e.settledAt || t - e.settledAt < DWELL) continue
+          const b0 = busy()
+          const waiting = [...live].some(([k, [x, y]]) => {
+            if (engaged.has(k)) return false
+            if (x === e.a || x === e.b) return !b0.has(y)
+            if (y === e.a || y === e.b) return !b0.has(x)
+            return false
+          })
+          if (waiting) {
+            engaged.delete(key)
+            lastEngaged.set(key, t)
+          }
+        }
+        const b1 = busy()
+        const queue = [...live].filter(([k]) => !engaged.has(k)).sort(([k1], [k2]) => (lastEngaged.get(k1) ?? -1) - (lastEngaged.get(k2) ?? -1))
+        for (const [key, [a, b]] of queue) {
+          if (b1.has(a) || b1.has(b)) continue
+          const da = degree.get(a) ?? 1
+          const db = degree.get(b) ?? 1
+          const hub = da > 1 && db === 1 ? a : db > 1 && da === 1 ? b : null
+          const pos = pairSpots(a, b, hub)
+          engaged.set(key, { a, b, pos, settledAt: 0 })
+          // Claim the spots now, so the next pair picked this tick keeps its distance.
+          for (const [id, p] of pos) goTo(sims.get(id)!, p.fx * W, p.fy * H)
+          b1.add(a).add(b)
+        }
+        for (const e of engaged.values()) {
+          for (const id of [e.a, e.b]) {
+            const p = e.pos.get(id)!
+            talking.set(id, { x: p.fx * W, y: p.fy * H, partner: id === e.a ? e.b : e.a })
+          }
+          if (!e.settledAt && sims.get(e.a)?.settled && sims.get(e.b)?.settled) e.settledAt = t
         }
       } else {
         const me = agents.find((a) => a.isMe)
-        const b = band()
-        const live = new Set(partners)
-        for (const pid of partners) {
-          if (!sims.has(pid) || !me) continue
-          const st = STATIONS[slotOf(pid, live) % STATIONS.length]
-          target(pid, W * (b.x0 + st.x * (b.x1 - b.x0)), H * (b.y0 + st.y * (b.y1 - b.y0)), me.id)
-        }
         const M = me ? sims.get(me.id) : null
-        const F = focus ? sims.get(focus) : null
-        if (me && M && F && focus && talking.has(focus)) {
-          // My agent walks up beside the partner, on the side nearer the middle.
-          const side = F.tx > W / 2 ? -1 : 1
-          target(me.id, F.tx + side * 62 * k, F.ty + 4, focus)
-        } else if (me && M) {
-          target(me.id, W * 0.5, H * (b.y1 - 0.02), "")
+        // My partners wait at their own spots, turned toward my agent; mine walks over to each in turn.
+        for (const pid of partners) {
+          const P = sims.get(pid)
+          if (P && me) talking.set(pid, { x: P.hx * W, y: P.hy * H, partner: me.id })
         }
+        if (me && M && focus && talking.has(focus)) {
+          const F = sims.get(focus)!
+          if (!visit || visit.id !== focus) visit = { id: focus, ...beside(F.hx, F.hy, taken([me.id, focus])) }
+          talking.set(me.id, { x: visit.fx * W, y: visit.fy * H, partner: focus })
+        } else visit = null
       }
+
+      const n = sims.size
+      const b = band()
+      const ideal = Math.sqrt(((b.x1 - b.x0) * W * (b.y1 - b.y0) * H * 0.6) / Math.max(1, n))
       for (const [id, s] of sims) {
-        const p = talking.get(id)
-        if (p !== undefined) {
-          s.partner = p || null
+        const tk = talking.get(id)
+        if (tk) {
+          s.partner = tk.partner
+          goTo(s, tk.x, tk.y)
           continue
         }
         if (s.partner) {
-          // Conversation over: back to roaming after a short beat.
+          // Conversation over: walk back to my spot, or a fresh one if a pair is now standing there.
           s.partner = null
-          s.settled = false
-          s.wait = 0.6 + Math.random()
-          const n = randSpot()
-          s.tx = n.x
-          s.ty = n.y
-          continue
+          if (clearance(s.hx * W, s.hy * H, taken([id])) < ideal * 0.45) {
+            const h = freeSpot(taken([id]))
+            s.hx = h.fx
+            s.hy = h.fy
+          }
         }
-        const d = Math.hypot(s.tx - s.x, s.ty - s.y)
-        if (d < 8 && s.wait <= 0) {
-          const n = randSpot()
-          s.tx = n.x
-          s.ty = n.y
-          s.wait = 1.5 + Math.random() * 3
+        goTo(s, s.hx * W, s.hy * H)
+      }
+
+      // Now and then one idle guest (never a group) strolls to a new free spot.
+      if (t > nextWander) {
+        nextWander = t + (variant === "phone" ? 5 + Math.random() * 5 : 2.5 + Math.random() * 3)
+        const roaming = [...sims.values()].filter((s) => !s.partner && !s.settled).length
+        const idle = agents.filter((a) => !a.isMe && sims.get(a.id)?.settled && !sims.get(a.id)?.partner)
+        if (idle.length && roaming < Math.max(1, Math.floor(n * 0.1))) {
+          const id = idle[Math.floor(Math.random() * idle.length)].id
+          const s = sims.get(id)!
+          const h = freeSpot(taken([id]), { near: { x: s.x, y: s.y }, radius: W * 0.3, pull: 0.15 })
+          s.hx = h.fx
+          s.hy = h.fy
+          goTo(s, h.fx * W, h.fy * H)
         }
       }
     }
@@ -417,53 +514,40 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
         const dx = s.tx - s.x
         const dy = s.ty - s.y
         const d = Math.hypot(dx, dy)
-        if (s.partner || a.isMe) {
-          // Heading to a talk spot: walk at an even pace, then stop dead on arrival (no sliding).
-          if (d < 5) {
-            s.x = s.tx
-            s.y = s.ty
-            s.vx = 0
-            s.vy = 0
-            s.settled = true
-          } else {
-            s.settled = false
-            const speed = (a.isMe ? 78 : 58) * (H / 700)
-            s.vx = (dx / d) * speed
-            s.vy = (dy / d) * speed
-            const st = Math.min(1, (speed * dt) / d)
-            s.x += dx * st
-            s.y += dy * st
-            s.walk += speed * dt * 0.1
-          }
+        if (d < 3) {
+          // Arrived: stand still (no sliding).
+          s.x = s.tx
+          s.y = s.ty
+          s.vx = 0
+          s.vy = 0
+          s.settled = true
         } else {
-          let ux = 0,
-            uy = 0
-          if (s.wait > 0 && d < 8) {
-            s.wait -= dt
-          } else if (d > 4) {
-            const speed = Math.min(40, d * 1.2) * (H / 700)
-            ux = (dx / d) * speed
-            uy = (dy / d) * speed
-          }
-          s.vx = toward(s.vx, ux, 200 * dt)
-          s.vy = toward(s.vy, uy, 200 * dt)
-          const ox = s.x,
-            oy = s.y
-          s.x += s.vx * dt
-          s.y += s.vy * dt
-          s.walk += Math.hypot(s.x - ox, s.y - oy) * 0.1
+          // Walking with purpose, at an even pace.
+          s.settled = false
+          const speed = (a.isMe ? 74 : 54) * (H / 700)
+          const st = Math.min(speed * dt, d)
+          s.vx = (dx / d) * speed
+          s.vy = (dy / d) * speed
+          s.x += (dx / d) * st
+          s.y += (dy / d) * st
+          s.walk += st * 0.1
         }
         const ax = Math.abs(s.vx),
           ay = Math.abs(s.vy)
         const P = s.partner ? sims.get(s.partner) : null
-        if (Math.hypot(s.vx, s.vy) > 6) {
+        if (!s.settled) {
           if (ax > ay * 1.2) s.dir = s.vx < 0 ? 1 : 3
           else if (ay > ax * 1.2) s.dir = s.vy < 0 ? 0 : 2
           if (ax > 4) s.face = s.vx < 0 ? -1 : 1
         } else if (P && Math.abs(P.x - s.x) > 1) {
-          // Standing and talking: turn toward the partner.
+          // Standing and talking: side-on, turned toward the partner.
           s.face = P.x < s.x ? -1 : 1
           s.dir = s.face < 0 ? 1 : 3
+        } else if (!P && t > s.turnAt) {
+          // Standing alone: glance the other way now and then.
+          s.face = -s.face
+          s.dir = s.face < 0 ? 1 : 3
+          s.turnAt = t + 4 + Math.random() * 7
         }
       }
     }
@@ -507,7 +591,7 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
           ? Math.sin((t * 4 + s.phase) * Math.PI) * 1.6 * sc
           : talking
             ? -Math.abs(Math.sin((t * (speaking ? 2.4 : 1.1) + s.phase) * Math.PI)) * (speaking ? 3 : 1.4) * sc
-            : 0
+            : -Math.abs(Math.sin((t * 0.45 + s.phase) * Math.PI)) * 0.9 * sc // standing: a slow breath
       const dh = 150 * sc
       if (s.sprite === -2) {
         // Robot: a floating round portrait token.
@@ -543,7 +627,7 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
         const f = wf[s.dir][reduce || !moving ? 1 : Math.floor(s.walk) % 4]
         const u = (dh * 1.05) / f.sh
         shadow(s.x, s.y, f.sw * u * 0.28, sc)
-        ctx.drawImage(walk, f.sx, f.sy, f.sw, f.sh, s.x - f.ax * u, s.y - f.ay * u + (talking ? bob : 0), f.sw * u, f.sh * u)
+        ctx.drawImage(walk, f.sx, f.sy, f.sw, f.sh, s.x - f.ax * u, s.y - f.ay * u + (moving ? 0 : bob), f.sw * u, f.sh * u)
       } else if (sf) {
         const f = sf[Math.max(1, s.sprite)]
         const u = dh / f.sh
@@ -601,12 +685,14 @@ export function VenueWorld({ agents, pairs, focus, partners = [], bubbles, varia
       const s = sims.get(b.speaker)
       if (!s) return
       // Talk once they are standing together, not mid-walk.
+      const screen = props.current.variant === "screen"
+      // On the big screen only pairs standing together talk; someone waiting their turn stays quiet.
+      if (screen && !s.partner) return
       const P = s.partner ? sims.get(s.partner) : null
       if ((s.partner && !s.settled) || (P && P.partner === b.speaker && !P.settled)) {
         bubbleBorn.delete(b.key) // pop in once they arrive
         return
       }
-      const screen = props.current.variant === "screen"
       const k = screen ? H / 620 : 1
       const fs = Math.round((screen ? 13 : 11.5) * k)
       const max = (screen ? 230 : 180) * k
