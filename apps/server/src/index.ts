@@ -9,6 +9,7 @@ import { Engine, DirectTransport } from "./agents/engine"
 import { llmProvider, llmStats } from "./agents/llm"
 import { maskIntro, meetNowTtl } from "./store/types"
 import { speed } from "./agents/engine"
+import { SeedHumans } from "./agents/seedHuman"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../..")
 
@@ -55,6 +56,8 @@ async function makeStore(): Promise<{ store: Store; kind: string }> {
 
 const { store, kind: storeKind } = await makeStore()
 const engine = new Engine(store)
+// Seeds answer Connect, chat and Meet now as their own human (SEED_HUMANS=0 turns it off).
+if (process.env.SEED_HUMANS !== "0") new SeedHumans(store)
 engine.setTransport(new DirectTransport(engine))
 
 // ---------- seed ----------
